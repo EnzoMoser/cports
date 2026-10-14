@@ -159,6 +159,11 @@ def rename_edir(pkg, extractdir, wpath, replace):
     # no contents
     if not entry:
         return
+    try:
+        # try removing the directory in case it's empty
+        wpath.rmdir()
+    except OSError:
+        pass
     # if it exists and we're replacing, remove the old
     if wpath.exists():
         if not replace:
@@ -235,9 +240,9 @@ def invoke(pkg):
             else:
                 fname = d[bsl + 1 :]
             suffix = None
-            for key in suffixes:
+            for key, sfx in suffixes.items():
                 if fnmatch(fname, key):
-                    suffix = suffixes[key]
+                    suffix = sfx
                     break
             if not suffix:
                 pkg.error(f"unknown source suffix for '{fname}'")

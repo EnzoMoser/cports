@@ -1,6 +1,6 @@
 pkgname = "plasma-desktop"
-pkgver = "6.7.4"
-pkgrel = 1
+pkgver = "6.8.0"
+pkgrel = 0
 build_style = "cmake"
 # FIXME: missing layout memory xml file? QTemporaryFile broken?
 # tst_calibrationtool: broken on ppc64le
@@ -45,11 +45,13 @@ makedepends = [
     "libcanberra-devel",
     "libksysguard-devel",
     "libplasma-devel",
+    "libxkbfile-devel",
     "plasma-activities-devel",
     "plasma-activities-stats-devel",
     "plasma-wayland-protocols",
     "plasma-workspace-devel",
     "plasma5support-devel",
+    "polkit-qt-1-devel",
     "qt6-qt5compat-devel",
     "qt6-qtbase-private-devel",  # qtx11extras_p.h
     "qt6-qtdeclarative-devel",
@@ -59,8 +61,6 @@ makedepends = [
     "sonnet-devel",
     "wayland-protocols",
     "xcb-util-devel",
-    "xserver-xorg-devel",
-    "xserver-xorg-input-libinput-devel",
     # TODO: PackageKitQt6? (Software Manager integration, KRunner plugin installer)
 ]
 checkdepends = [
@@ -114,13 +114,13 @@ pkgdesc = "KDE Plasma Desktop"
 license = "GPL-2.0-only AND LGPL-2.1-only"
 url = "https://kde.org/plasma-desktop"
 source = f"$(KDE_SITE)/plasma/{pkgver}/plasma-desktop-{pkgver}.tar.xz"
-sha256 = "c2f0c2b7ab70cbd99ef17ffad4c3117dab12ef6a71790da33e39688386474962"
+sha256 = "6272ec39d9f4661ca8d043a33c2fb71cc07969c9a290559126b2bed1071343aa"
 hardening = ["vis"]
 options = ["etcfiles"]
 
 # most kdepim stuff depends on messagelib which depends on qtwebengine
 _have_kdepim = False
-if self.profile().arch in ["aarch64", "ppc64le", "x86_64"]:
+if self.profile.arch in ["aarch64", "ppc64le", "x86_64"]:
     _have_kdepim = True
 
 
@@ -186,22 +186,6 @@ def _(self):
     return []
 
 
-@subpackage("plasma-desktop-x11-meta")
-def _(self):
-    self.subdesc = "X11 session recommends package"
-    self.depends = [
-        "kgamma",  # monitor gamma settings
-        "plasma-workspace-x11",  # xsession
-        "setxkbmap",  # configure non-us layout
-        "wacomtablet",  # wacom tablet settings
-        "xserver-xorg-input-libinput",  # general input
-    ]
-    self.install_if = [self.parent, "xserver-xorg-core"]
-    self.options = ["empty"]
-
-    return []
-
-
 @subpackage("plasma-desktop-apps-meta")
 def _(self):
     self.subdesc = "apps recommends package"
@@ -220,6 +204,7 @@ def _(self):
         "haruna",  # mpv frontend
         "isoimagewriter",  # iso to usb writer
         "kalk",  # calculator
+        "kamoso",  # camera
         "kate",  # text editor(s)
         "kcachegrind",  # callgrind data visualizer
         "kcharselect",  # fonts character picker
@@ -241,18 +226,16 @@ def _(self):
         "plasma-systemmonitor",
         "plasma-vault",
         "skanlite",  # image scanner
-        # "skanpage",  # document scanner (TODO: tesseract)
         "spectacle",  # screenshot
         "sweeper",  # cache cleaner
         "yakuake",  # drop-down terminal
         # - still qt5
-        # "kamoso",  # camera
         # "kipi-plugins",  # image export
         # "kmymoney",  # finance manager
         # "kompare",  # gui diff
     ]
     # things missing on some arches
-    if self.rparent.profile().arch in ["aarch64", "ppc64le", "x86_64"]:
+    if self.rparent.profile.arch in ["aarch64", "ppc64le", "x86_64"]:
         self.depends += [
             "akregator",  # rss feeds
             "digikam",  # photo manager
@@ -261,6 +244,7 @@ def _(self):
             "krita",  # digital art studio
             "konqueror",  # web browser
             "neochat",  # matrix client
+            "skanpage",  # document scanner
             "tokodon",  # mastodon client
         ]
     self.options = ["empty"]

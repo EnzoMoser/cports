@@ -1,5 +1,5 @@
 pkgname = "pipx"
-pkgver = "1.17.2"
+pkgver = "1.17.8"
 pkgrel = 0
 build_style = "python_pep517"
 hostmakedepends = [
@@ -23,7 +23,7 @@ pkgdesc = "Python tool for installing binaries to venvs"
 license = "MIT"
 url = "https://github.com/pypa/pipx"
 source = f"{url}/archive/refs/tags/{pkgver}.tar.gz"
-sha256 = "ef670039a1923c1de873660183e18e7b29abf295a4af9b5a77c7f357e9416c9f"
+sha256 = "95f2a7b2d6bf29410702c426eef3cf6cb3fb4b5e7f304aac0bc338a911af0fb1"
 # missing some unknown deps
 options = ["!check"]
 

@@ -1,6 +1,6 @@
 pkgname = "syncthing"
-pkgver = "2.1.5"
-pkgrel = 0
+pkgver = "2.1.6"
+pkgrel = 1
 build_style = "go"
 make_build_args = [
     f"-ldflags=-X github.com/syncthing/syncthing/lib/build.Version=v{pkgver}",
@@ -21,10 +21,10 @@ pkgdesc = "Continuous file synchronization program"
 license = "MPL-2.0"
 url = "https://syncthing.net"
 source = f"https://github.com/syncthing/syncthing/archive/v{pkgver}.tar.gz"
-sha256 = "1b3e217022848b65a1b7ececa4d5e752fc044b4e8643befa1f9a8a9dc9b2bbbf"
+sha256 = "912cf0cf214a3cb68dedf88fbafc78bb842bfcdc857f5e26c4d3a6971f1a5c8e"
 
 
-if self.profile().wordsize == 32:
+if self.profile.wordsize == 32:
     # 32-bit targets OOM in tests, maintainer recommends using -short to skip
     # those kinds of tests: https://github.com/syncthing/syncthing/issues/6209#issuecomment-561272903
     make_check_args += ["-short"]

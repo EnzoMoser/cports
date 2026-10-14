@@ -1,5 +1,5 @@
 pkgname = "flatpak"
-pkgver = "1.18.2"
+pkgver = "1.18.4"
 pkgrel = 0
 build_style = "meson"
 configure_args = [
@@ -66,7 +66,7 @@ pkgdesc = "Linux application sandboxing and distribution framework"
 license = "LGPL-2.1-or-later"
 url = "https://flatpak.org"
 source = f"https://github.com/flatpak/flatpak/releases/download/{pkgver}/flatpak-{pkgver}.tar.xz"
-sha256 = "800ff8cb14c369a3c19984932ae2cbea1b0d38363daa57cfb8ef04b8d7f08e10"
+sha256 = "b899a7a00c48d2c626cb8ec33fe556720b376c25805d7222430c0fdca4c6ac8d"
 # test runner expects a different env (possible FIXME?)
 options = ["etcfiles", "!check", "!cross"]
 

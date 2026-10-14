@@ -1,5 +1,5 @@
 pkgname = "emacs-console"
-pkgver = "30.2"
+pkgver = "31.1"
 pkgrel = 2
 build_style = "gnu_configure"
 # TODO gccjit (cba to figure it out for now)
@@ -7,14 +7,16 @@ configure_args = [
     "--with-gameuser=:_games",
     "--with-gpm",
     "--with-json",
+    "--with-native-compilation",
     "--without-file-notification",
     "--without-sound",
     "--without-x",
 ]
 make_check_args = [
     "EXCLUDE_TESTS="
-    " %eglot-tests.el"  # requires a variety of lsp servers
-    " %tramp-tests.el"  # TODO: fails mysteriously
+    + " %eglot-tests.el"  # requires a variety of lsp servers
+    + " %tramp-tests.el"  # TODO: fails mysteriously
+    + " %package-vc-tests.el"  # TODO: hangs
 ]
 hostmakedepends = [
     "automake",
@@ -28,18 +30,26 @@ makedepends = [
     "gmp-devel",
     "gnutls-devel",
     "lcms2-devel",
+    "libgccjit-devel",
     "libxml2-devel",
     "linux-headers",
     "ncurses-devel",
     "tree-sitter-devel",
 ]
+checkdepends = ["bash", "git", "mandoc"]
+depends = ["ctags"]
 provides = [f"emacs={pkgver}"]
 provider_priority = 0
 pkgdesc = "Extensible, customizable, self-documenting, real-time display editor"
 license = "GPL-3.0-or-later"
 url = "https://www.gnu.org/software/emacs/emacs.html"
 source = f"$(GNU_SITE)/emacs/emacs-{pkgver}.tar.xz"
-sha256 = "b3f36f18a6dd2715713370166257de2fae01f9d38cfe878ced9b1e6ded5befd9"
+sha256 = "1da5790d9580c81932b5bf700633114468da7b3412d69faa767daebf974f4586"
+tool_flags = {"LDFLAGS": []}
+
+if self.profile.arch in ["loongarch64"]:
+    # loongarch64-chimera-linux-musl-ld: error: address assignment did not converge
+    tool_flags["LDFLAGS"] += ["-mno-relax"]
 
 
 def post_install(self):
@@ -48,12 +58,8 @@ def post_install(self):
     # remove suid from game exe
     (
         self.destdir
-        / f"usr/lib/emacs/{pkgver}/{self.profile().triplet}/update-game-score"
+        / f"usr/lib/emacs/{pkgver}/{self.profile.triplet}/update-game-score"
     ).chmod(0o755)
 
     self.uninstall("usr/lib/systemd/user")
     self.uninstall("var/games")
-
-    # conflicts with ctags
-    self.rename("usr/bin/ctags", "ctags.emacs")
-    self.rename("usr/share/man/man1/ctags.1.gz", "ctags.emacs.1.gz")

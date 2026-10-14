@@ -1,5 +1,5 @@
 pkgname = "kinfocenter"
-pkgver = "6.7.4"
+pkgver = "6.8.0"
 pkgrel = 0
 build_style = "cmake"
 hostmakedepends = [
@@ -20,14 +20,15 @@ makedepends = [
     "kirigami-addons-devel",
     "libusb-devel",
     "qt6-qtbase-devel",
+    "qt6-qtgraphs-devel",
     # TODO: SeleniumWebDriverATSPI? (GUI accessibility tests)
 ]
-depends = ["kdeclarative", "systemsettings"]
+depends = ["kdeclarative", "qt6-qtgraphs", "systemsettings"]
 pkgdesc = "Utility providing information about your system"
 license = "GPL-2.0-or-later AND LGPL-2.1-or-later"
 url = "https://invent.kde.org/plasma/kinfocenter"
 source = f"$(KDE_SITE)/plasma/{pkgver}/kinfocenter-{pkgver}.tar.xz"
-sha256 = "b82f7fae6941ab9e0327a0579ada51b12ad3c5a4fa5fcd8272c70aea09a1ff23"
+sha256 = "56ca33428a14c7963e75be1c39025e62b70253b0e0fdc500072a38df9411a761"
 # symlink to systemsettings, runtime dep provided
 broken_symlinks = ["usr/bin/kinfocenter"]
 hardening = ["vis"]
@@ -56,7 +57,7 @@ def _(self):
         "xdpyinfo",
     ]
     self.options = ["empty"]
-    if self.rparent.profile().arch in ["aarch64", "riscv64", "x86_64"]:
+    if self.rparent.profile.arch in ["aarch64", "riscv64", "x86_64"]:
         self.depends += ["dmidecode"]
 
     return []

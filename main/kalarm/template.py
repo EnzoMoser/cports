@@ -1,5 +1,5 @@
 pkgname = "kalarm"
-pkgver = "26.08.0"
+pkgver = "26.08.2"
 pkgrel = 0
 build_style = "cmake"
 configure_args = [
@@ -58,5 +58,5 @@ pkgdesc = "KDE personal alarm scheduler"
 license = "LGPL-2.0-or-later AND GPL-2.0-or-later"
 url = "https://apps.kde.org/kalarm"
 source = f"$(KDE_SITE)/release-service/{pkgver}/src/kalarm-{pkgver}.tar.xz"
-sha256 = "c8d42945284b9d6747d40b93829e15fe35b407509d8580477a52bffedce66f28"
+sha256 = "b8b68cf4c20903adecdacf867df0fe3c538593fca0506a3719fe7d249dd917c4"
 options = ["etcfiles"]

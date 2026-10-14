@@ -1,10 +1,10 @@
 pkgname = "sq"
 pkgver = "0.50.0"
-pkgrel = 4
+pkgrel = 5
 build_style = "go"
 make_build_args = [
     f"-ldflags=-X github.com/neilotoole/sq/cli/buildinfo.Version=v{pkgver}"
-    " -X github.com/neilotoole/sq/cli/buildinfo.Commit=RELEASE"
+    + " -X github.com/neilotoole/sq/cli/buildinfo.Commit=RELEASE"
 ]
 hostmakedepends = ["go"]
 makedepends = ["icu-devel", "sqlite-devel", "postgresql16-client-devel"]

@@ -1,6 +1,6 @@
 pkgname = "gotosocial"
 pkgver = "0.22.1"
-pkgrel = 1
+pkgrel = 2
 build_style = "go"
 prepare_after_patch = True
 make_build_args = [f"-ldflags=-X main.Version={pkgver}", "./cmd/gotosocial"]
@@ -19,7 +19,7 @@ sha256 = "710644e037e381d394a60c9c3fad48c57e81889b2f54fd1d101f2a4066805179"
 # flaky
 options = ["!check"]
 
-match self.profile().arch:
+match self.profile.arch:
     case "aarch64" | "x86_64":
         pass
     case _:

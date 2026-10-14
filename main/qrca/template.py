@@ -1,5 +1,5 @@
 pkgname = "qrca"
-pkgver = "26.08.0"
+pkgver = "26.08.2"
 pkgrel = 0
 build_style = "cmake"
 hostmakedepends = [
@@ -29,5 +29,5 @@ pkgdesc = "KDE QR code scanner"
 license = "GPL-3.0-or-later"
 url = "https://apps.kde.org/qrca"
 source = f"$(KDE_SITE)/release-service/{pkgver}/src/qrca-{pkgver}.tar.xz"
-sha256 = "367f615bb882a3e2507fb592e333b510023d233d3fb67113a0529bbf97e770cc"
+sha256 = "517b067fa2781b3ac4375e828329706c8277071e59f70796027f15de684e3af3"
 hardening = ["vis"]

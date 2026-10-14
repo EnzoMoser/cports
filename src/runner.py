@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 cbpath = None
 rtpath = None
 
@@ -51,6 +49,7 @@ opt_statusfd = None
 opt_bulkcont = False
 opt_allowcat = "main user"
 opt_restricted = False
+opt_noci = False
 opt_updatecheck = False
 opt_acceptsum = False
 opt_maint = "unknown <cports@local>"
@@ -115,7 +114,7 @@ def handle_options():
     global opt_arch, opt_tltocache
     global opt_harch, opt_gen_dbg, opt_check, opt_ccache, opt_tltocachesize
     global opt_sccache, opt_makejobs, opt_lthreads, opt_nocolor, opt_signkey
-    global opt_force, opt_mdirtemp, opt_allowcat, opt_restricted
+    global opt_force, opt_mdirtemp, opt_allowcat, opt_restricted, opt_noci
     global opt_nonet, opt_dirty, opt_statusfd, opt_keeptemp, opt_forcecheck
     global opt_checkfail, opt_stage, opt_altrepo, opt_stagepath, opt_bldroot
     global opt_blddir, opt_pkgpath, opt_srcpath, opt_cchpath, opt_updatecheck
@@ -384,6 +383,7 @@ def handle_options():
         opt_restricted = bcfg.getboolean(
             "allow_restricted", fallback=opt_restricted
         )
+        opt_noci = not bcfg.getboolean("allow_ci", fallback=not opt_noci)
         opt_nonet = not bcfg.getboolean("remote", fallback=not opt_nonet)
         opt_linter = bcfg.get("linter", fallback=opt_linter).strip()
         opt_formatter = bcfg.get("formatter", fallback=opt_formatter).strip()
@@ -504,7 +504,12 @@ def handle_options():
     if cmdline.accept_checksums:
         opt_acceptsum = True
 
-    ncores = len(os.sched_getaffinity(0))
+    try:
+        # may fail with EINVAL
+        ncores = len(os.sched_getaffinity(0)) or 1
+    except Exception:
+        # may not fail but may return None
+        ncores = os.cpu_count() or 1
 
     if opt_makejobs == 0:
         opt_makejobs = ncores
@@ -1238,7 +1243,7 @@ def do_prune_sources(tgt):
     logger.get().out("Collecting checksums...")
     shaset = set()
     for tmpln in tmpls:
-        with (paths.distdir() / tmpln / "template.py").open("r") as inf:
+        with (paths.distdir() / tmpln / "template.py").open() as inf:
             for ln in inf.readlines():
                 for sha in re.findall(r'"[0-9a-fA-F]{64}"', ln):
                     shaset.add(sha.strip('"').lower())
@@ -1374,9 +1379,9 @@ def do_relink_subpkgs(tgt):
                 continue
 
     # recreate symlinks
-    for pn in links:
+    for pn, pv in links.items():
         repo, jpn = pn.split("/")
-        for sn in links[pn]:
+        for sn in pv:
             fp = ddir / repo / sn
             if fp.exists():
                 if not fp.is_symlink():
@@ -1470,6 +1475,8 @@ def _get_unbuilt(outdated=False):
             return
         outp = subprocess.run(
             [
+                "env",
+                "APK_CONFIG=/dev/null",
                 paths.apk(),
                 "--arch",
                 tarch,
@@ -1487,6 +1494,7 @@ def _get_unbuilt(outdated=False):
                 "*",
             ],
             capture_output=True,
+            check=False,
         )
         if outp.returncode != 0:
             return
@@ -1526,6 +1534,7 @@ def _get_unbuilt(outdated=False):
             None,
             init=False,
             allow_restricted=opt_restricted,
+            allow_ci=not opt_noci,
         )
         mods[pn] = tmpl
         modv = tmpl._raw_mod
@@ -1536,10 +1545,11 @@ def _get_unbuilt(outdated=False):
             or not hasattr(modv, "pkgrel")
         ):
             vers.append(pn)
+            continue
         # get the metadata we need
-        apn = getattr(modv, "pkgname")
-        apv = getattr(modv, "pkgver")
-        apr = getattr(modv, "pkgrel")
+        apn = modv.pkgname
+        apv = modv.pkgver
+        apr = modv.pkgrel
         if apv is None or apr is None:
             prv = ""
         else:
@@ -1616,9 +1626,35 @@ def _get_unbuilt(outdated=False):
         # recursively check for explicit brokenness
         if _check_tmpls(pn):
             continue
-        fvers.append((pn, tvers[pn] if pn in tvers else None))
+        fvers.append((pn, tvers.get(pn, None)))
 
     return fvers
+
+
+def do_print_build_deps(tgt):
+    from cbuild.core import template, chroot, errors
+
+    if len(cmdline.command) < 2:
+        raise errors.CbuildException("print-build-graph needs a package name")
+
+    mdeps = []
+
+    for pkgn in cmdline.command[1:]:
+        tmpl = template.Template(
+            pkgn,
+            opt_arch if opt_arch else chroot.host_cpu(),
+            True,
+            False,
+            (1, 1),
+            False,
+            False,
+            None,
+            target="lint",
+        )
+        mdeps += tmpl.hostmakedepends
+        mdeps += tmpl.makedepends
+
+    print(" ".join(sorted(set(mdeps))))
 
 
 def do_update_check(tgt):
@@ -1642,10 +1678,8 @@ def do_update_check(tgt):
             target="lint",
         )
 
-        if len(tmpl.pkgver) > verlen:
-            verlen = len(tmpl.pkgver)
-        if len(tmpl.full_pkgname) > namelen:
-            namelen = len(tmpl.full_pkgname)
+        verlen = max(len(tmpl.pkgver), verlen)
+        namelen = max(len(tmpl.full_pkgname), namelen)
 
         return tmpl
 
@@ -1801,6 +1835,7 @@ def do_pkg(tgt, pkgn=None, force=None, check=None, stage=None):
             force_check=opt_forcecheck,
             stage=bstage,
             allow_restricted=opt_restricted,
+            allow_ci=not opt_noci,
             data=opt_tdata,
             linter=opt_linter,
             formatter=opt_formatter,
@@ -1999,7 +2034,7 @@ def _bulkpkg(pkgs, statusf, do_build, do_raw, version):
         ofailed = failed
         failed = False
         tp = _do_with_exc(
-            lambda: template.Template(
+            lambda pn=pn: template.Template(
                 pn,
                 tarch,
                 opt_force,
@@ -2015,6 +2050,7 @@ def _bulkpkg(pkgs, statusf, do_build, do_raw, version):
                 force_check=opt_forcecheck,
                 bulk_mode=True,
                 allow_restricted=opt_restricted,
+                allow_ci=not opt_noci,
                 data=opt_tdata,
             )
         )
@@ -2089,9 +2125,9 @@ def _bulkpkg(pkgs, statusf, do_build, do_raw, version):
                     continue
                 # ensure to write the status
                 if _do_with_exc(
-                    lambda: build.build(
+                    lambda tp=tp: build.build(
                         "pkg",
-                        templates[pn],
+                        tp,
                         {},
                         dirty=False,
                         keep_temp=False,
@@ -2210,12 +2246,12 @@ def _collect_blist(pkgs):
             if pkg == "status:outdated":
                 rpkgs += list(map(lambda v: v[0], _get_unbuilt(True)))
                 continue
-            with open(pkg.removeprefix("status:"), "r") as inf:
+            with open(pkg.removeprefix("status:")) as inf:
                 rpkgs += _collect_status(inf)
             continue
         # files
         if pkg.startswith("file:") and pkg != "file:-":
-            with open(pkg.removeprefix("file:"), "r") as inf:
+            with open(pkg.removeprefix("file:")) as inf:
                 for ln in inf:
                     rpkgs += _collect_blist([ln.strip()])
             continue
@@ -2278,7 +2314,10 @@ def do_prepare_upgrade(tgt):
 
     pkgn = cmdline.command[1]
 
-    chroot.chroot_check()
+    if opt_mdirtemp:
+        chroot.install()
+    else:
+        chroot.chroot_check()
 
     tmpl = template.Template(
         pkgn,
@@ -2769,6 +2808,10 @@ command_handlers = {
         do_prepare_upgrade,
         "Update template checksums and reset pkgrel",
     ),
+    "print-build-dependencies": (
+        do_print_build_deps,
+        "Print the build dependencies of a template",
+    ),
     "print-build-graph": (
         do_print_build_graph,
         "Print the build graph of a template",
@@ -2904,7 +2947,9 @@ def fire():
     cli.set_network(not opt_nonet)
 
     try:
-        aret = subprocess.run([paths.apk(), "--version"], capture_output=True)
+        aret = subprocess.run(
+            [paths.apk(), "--version"], capture_output=True, check=False
+        )
     except FileNotFoundError:
         logger.get().out(
             f"\f[red]cbuild: apk not found (expected path: {paths.apk()})"
@@ -2916,7 +2961,9 @@ def fire():
         sys.exit(1)
 
     try:
-        subprocess.run([paths.bwrap(), "--version"], capture_output=True)
+        subprocess.run(
+            [paths.bwrap(), "--version"], capture_output=True, check=False
+        )
     except FileNotFoundError:
         logger.get().out(
             f"\f[red]cbuild: bwrap not found (expected path: {paths.bwrap()})"

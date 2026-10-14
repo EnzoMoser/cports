@@ -1,6 +1,6 @@
 # rebuild qt6-qtbase-private-devel consumers on upgrades
 pkgname = "qt6-qtbase"
-pkgver = "6.11.2"
+pkgver = "6.12.0"
 pkgrel = 0
 build_style = "cmake"
 configure_args = [
@@ -45,6 +45,7 @@ makedepends = [
     "icu-devel",
     "libb2-devel",
     "libinput-devel",
+    "libjpeg-turbo-devel",
     "libpng-devel",
     "libproxy-devel",
     "libxcb-devel",
@@ -74,18 +75,18 @@ license = (
 )
 url = "https://www.qt.io"
 source = f"https://download.qt.io/official_releases/qt/{pkgver[:-2]}/{pkgver}/submodules/qtbase-everywhere-src-{pkgver}.tar.xz"
-sha256 = "5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22"
+sha256 = "a951bd163c7b80fc6b8c88d7668fb56abf91c152373e13c10666763238131307"
 tool_flags = {"LDFLAGS": ["-Wl,-z,stack-size=0x200000"]}
 # FIXME
 hardening = ["!int"]
 # TODO
 options = ["!cross"]
 
-if self.profile().cross:
+if self.profile.cross:
     hostmakedepends += ["qt6-qtbase"]
     configure_args += ["-DQT_FORCE_BUILD_TOOLS=ON"]
 
-if self.profile().arch == "riscv64":
+if self.profile.arch == "riscv64":
     # https://bugreports.qt.io/browse/QTBUG-98951
     # our riscv64 is currently emulated, so this breaks anything using qmake from building
     # just disable it on the arch for now, as it falls back to fork and works anyway
@@ -190,7 +191,6 @@ def post_install(self):
     self.uninstall("usr/lib/qt6/tests")
     self.uninstall("usr/lib/qt6/bin/syslocaleapp")
     self.uninstall("usr/lib/qt6/bin/socketprocess")
-    self.uninstall("usr/lib/qt6/bin/qfileopeneventexternal")
     self.uninstall("usr/lib/qt6/bin/qcommandlineparser_test_helper")
     self.uninstall("usr/lib/qt6/bin/paster")
     self.uninstall("usr/lib/qt6/bin/modal_helper")
@@ -236,11 +236,17 @@ def _(self):
     ]
 
 
-def _libpkg(name, libname, desc, extra=[]):
+def _libpkg(name, libname, desc, extra=None):
     @subpackage(f"qt6-qtbase-{name}")
     def _(self):
         self.subdesc = desc
-        return [f"usr/lib/libQt6{libname}.so.*", *extra]
+
+        if name == "core":
+            self.depends += [
+                "virtual:qt6-qttranslations!qt6-qtbase-translations-none"
+            ]
+
+        return [f"usr/lib/libQt6{libname}.so.*", *(extra or [])]
 
 
 for _sp in [
@@ -324,3 +330,13 @@ def _(self):
             "usr/lib/*.prl",
         ]
     )
+
+
+@subpackage("qt6-qtbase-translations-none")
+def _(self):
+    self.subdesc = "no translations"
+    self.provides = ["qt6-qttranslations=0"]
+    self.install_if = [self.with_pkgver("qt6-qtbase-core"), "!base-locale"]
+    self.options = ["empty"]
+
+    return []

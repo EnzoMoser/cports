@@ -1,7 +1,7 @@
 # rebuild on major clang version updates
 pkgname = "gcc"
 _clangver = "22"
-pkgver = "16.1.0"
+pkgver = "16.2.0"
 _bver = pkgver
 _mnver = _bver[0 : _bver.rfind(".")]
 pkgrel = 0
@@ -51,7 +51,7 @@ configure_args = [
 ]
 configure_gen = []
 hostmakedepends = [
-    f"binutils-{self.profile().arch}",
+    f"binutils-{self.profile.arch}",
     "bison",
     "flex",
     "gawk",
@@ -70,7 +70,7 @@ makedepends = [
     "zstd-devel",
 ]
 depends = [
-    f"binutils-{self.profile().arch}",
+    f"binutils-{self.profile.arch}",
     f"clang-rt-devel~{_clangver}",
     f"libcxx-devel~{_clangver}",
 ]
@@ -78,12 +78,12 @@ pkgdesc = "GNU Compiler Collection"
 license = "GPL-3.0-or-later"
 url = "https://gcc.gnu.org"
 source = f"$(GNU_SITE)/gcc/gcc-{pkgver}/gcc-{pkgver}.tar.xz"
-sha256 = "50efb4d94c3397aff3b0d61a5abd748b4dd31d9d3f2ab7be05b171d36a510f79"
+sha256 = "e6738e29597f733270731aa90600f37ffdc045079dfc27ec7e8192cc81085c3e"
 hardening = ["!int", "!format", "!var-init"]
 # no tests to run
 options = ["!check", "!lto", "!relr", "!cross", "!scanshlibs"]
 
-_trip = self.profile().triplet
+_trip = self.profile.triplet
 # we cannot use clang, gcc expects binutils
 tools = {"AS": "as", "LD": "ld.bfd", "OBJDUMP": "gobjdump"}
 # give the build the builtins library in all cases that use LDFLAGS
@@ -104,14 +104,14 @@ broken_symlinks = [
 # so in order to avoid trouble
 _use_bootstrap = False
 
-match self.profile().arch:
+match self.profile.arch:
     case (
         "aarch64" | "armv7" | "ppc64le" | "ppc64" | "ppc" | "riscv64" | "x86_64"
     ):
         _use_bootstrap = True
         hostmakedepends += ["gcc-bootstrap"]
 
-match self.profile().arch:
+match self.profile.arch:
     case "aarch64":
         configure_args += [
             "--with-arch=armv8-a",
@@ -154,7 +154,7 @@ match self.profile().arch:
             "--with-abi=lp64d",
         ]
 
-match self.profile().arch:
+match self.profile.arch:
     case "ppc" | "x86":
         makedepends += ["musl-libssp-static"]
         depends += ["musl-libssp-static"]

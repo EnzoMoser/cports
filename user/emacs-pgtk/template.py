@@ -1,5 +1,5 @@
 pkgname = "emacs-pgtk"
-pkgver = "30.2"
+pkgver = "31.1"
 pkgrel = 2
 build_style = "gnu_configure"
 configure_args = [
@@ -7,6 +7,7 @@ configure_args = [
     "--with-gpm",
     "--with-jpeg",
     "--with-json",
+    "--with-native-compilation",
     "--with-pgtk",
     "--with-webp",
     "--with-x-toolkit=gtk3",
@@ -14,10 +15,11 @@ configure_args = [
 ]
 make_check_args = [
     "EXCLUDE_TESTS="
-    " %eglot-tests.el"  # requires a variety of lsp servers
-    " %tramp-tests.el"  # TODO: fails mysteriously
-    " %shr-tests.el"  # TODO: zoom-image times out
-    " %process-tests.el"  # TODO: times out
+    + " %eglot-tests.el"  # requires a variety of lsp servers
+    + " %tramp-tests.el"  # TODO: fails mysteriously
+    + " %shr-tests.el"  # TODO: zoom-image times out
+    + " %process-tests.el"  # TODO: times out
+    + " %package-vc-tests.el"  # TODO: hangs
 ]
 hostmakedepends = [
     "automake",
@@ -36,6 +38,7 @@ makedepends = [
     "gtk+3-devel",
     "harfbuzz-devel",
     "lcms2-devel",
+    "libgccjit-devel",
     "libjpeg-turbo-devel",
     "libpng-devel",
     "librsvg-devel",
@@ -48,13 +51,20 @@ makedepends = [
     "sqlite-devel",
     "tree-sitter-devel",
 ]
+checkdepends = ["bash", "git", "mandoc"]
+depends = ["ctags"]
 provides = [f"emacs={pkgver}"]
 provider_priority = 20
 pkgdesc = "Extensible, customizable, self-documenting, real-time display editor"
 license = "GPL-3.0-or-later"
 url = "https://www.gnu.org/software/emacs/emacs.html"
 source = f"$(GNU_SITE)/emacs/emacs-{pkgver}.tar.xz"
-sha256 = "b3f36f18a6dd2715713370166257de2fae01f9d38cfe878ced9b1e6ded5befd9"
+sha256 = "1da5790d9580c81932b5bf700633114468da7b3412d69faa767daebf974f4586"
+tool_flags = {"LDFLAGS": []}
+
+if self.profile.arch in ["loongarch64"]:
+    # loongarch64-chimera-linux-musl-ld: error: address assignment did not converge
+    tool_flags["LDFLAGS"] += ["-mno-relax"]
 
 
 def post_install(self):
@@ -63,12 +73,8 @@ def post_install(self):
     # remove suid from game exe
     (
         self.destdir
-        / f"usr/lib/emacs/{pkgver}/{self.profile().triplet}/update-game-score"
+        / f"usr/lib/emacs/{pkgver}/{self.profile.triplet}/update-game-score"
     ).chmod(0o755)
 
     self.uninstall("usr/lib/systemd/user")
     self.uninstall("var/games")
-
-    # conflicts with ctags
-    self.rename("usr/bin/ctags", "ctags.emacs")
-    self.rename("usr/share/man/man1/ctags.1.gz", "ctags.emacs.1.gz")

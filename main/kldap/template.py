@@ -1,5 +1,5 @@
 pkgname = "kldap"
-pkgver = "26.08.0"
+pkgver = "26.08.2"
 pkgrel = 0
 build_style = "cmake"
 hostmakedepends = [
@@ -23,7 +23,7 @@ pkgdesc = "KDE LDAP access API"
 license = "LGPL-2.0-or-later"
 url = "https://community.kde.org/KDE_PIM"
 source = f"$(KDE_SITE)/release-service/{pkgver}/src/kldap-{pkgver}.tar.xz"
-sha256 = "d6fe84369db50a61371c5dcb268efe1705bc45decd4eff00bf7c8cecf04237bd"
+sha256 = "17fb3e289692599b6aa0ad2c3d409e13f52dabcd6273544eb568cf6f025bac59"
 
 
 @subpackage("kldap-devel")

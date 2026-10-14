@@ -1,5 +1,5 @@
 pkgname = "easyeffects"
-pkgver = "8.2.8"
+pkgver = "8.3.0"
 pkgrel = 0
 build_style = "cmake"
 hostmakedepends = [
@@ -48,13 +48,15 @@ depends = [
     # most plugins are from here and it can crash without them (and at least prints
     # 9 million warnings), so just always pull it
     "lsp-plugins-lv2",
+    # ee enforces this qquickstyle by default
+    "qqc2-desktop-style",
     "qt6-qtgraphs",
 ]
 pkgdesc = "PipeWire audio plugins"
 license = "GPL-3.0-or-later"
 url = "https://github.com/wwmm/easyeffects"
 source = f"{url}/archive/refs/tags/v{pkgver}.tar.gz"
-sha256 = "0e241ad32a0147d180f9dd35181c8eea11e7d32309dda9b4b70b6b472189e45e"
+sha256 = "16e2c984b563e4be457830b35375f8cd37d25f7168e5a60a7f0024d86875de6c"
 tool_flags = {"CXXFLAGS": ["-fexperimental-library"]}
 
 

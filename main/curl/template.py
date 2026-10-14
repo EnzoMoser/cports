@@ -50,7 +50,7 @@ checkdepends = [
 ]
 depends = ["ca-certificates"]
 pkgdesc = "Command line tool for transferring data with URL syntax"
-license = "MIT"
+license = "curl"
 url = "https://curl.se"
 source = f"{url}/download/curl-{pkgver}.tar.xz"
 sha256 = "f7ef3ae8a22e521f289803fe93543eb64c329b58aa73a9e224dfd915a2a5f4f7"
@@ -61,14 +61,14 @@ def post_install(self):
     self.install_license("COPYING")
 
     # patch curl-config for cross
-    if not self.profile().cross:
+    if not self.profile.cross:
         return
 
     with open(self.destdir / "usr/bin/curl-config") as inf:
         with open(self.destdir / "usr/bin/curl-config.new", "w") as outf:
             for ln in inf:
-                ln = ln.replace(f"-L{self.profile().sysroot / 'usr/lib'} ", "")
-                ln = ln.replace(f"{self.profile().triplet}-", "")
+                ln = ln.replace(f"-L{self.profile.sysroot / 'usr/lib'} ", "")
+                ln = ln.replace(f"{self.profile.triplet}-", "")
                 outf.write(ln)
 
     self.rename("usr/bin/curl-config.new", "curl-config")

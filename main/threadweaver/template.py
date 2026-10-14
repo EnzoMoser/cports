@@ -1,5 +1,5 @@
 pkgname = "threadweaver"
-pkgver = "6.29.0"
+pkgver = "6.31.0"
 pkgrel = 0
 build_style = "cmake"
 hostmakedepends = ["cmake", "extra-cmake-modules", "ninja"]
@@ -8,7 +8,7 @@ pkgdesc = "KDE Multithreading helper library"
 license = "LGPL-2.1-or-later"
 url = "https://community.kde.org/Frameworks"
 source = f"$(KDE_SITE)/frameworks/{pkgver[: pkgver.rfind('.')]}/threadweaver-{pkgver}.tar.xz"
-sha256 = "0d61797f9400acea7c94a0998e21954685f2de0b2c57760b85186560819fd5cc"
+sha256 = "4a65944dcca12672ace6d54a48b3a993d4b46b6095106316c3a95ecae6af9906"
 hardening = ["vis"]
 
 

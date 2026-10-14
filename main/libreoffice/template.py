@@ -168,7 +168,7 @@ license = "GPL-3.0-or-later"
 url = "https://www.libreoffice.org"
 # big and not particularly useful testsuite
 # FIXME: lto breaks LO with clang 17
-options = ["!lto", "!cross", "!check", "linkundefver", "empty"]
+options = ["!ci", "!lto", "!cross", "!check", "linkundefver", "empty"]
 
 _surl = f"https://download.documentfoundation.org/libreoffice/src/{pkgver[:-2]}"
 _aurl = "!https://dev-www.libreoffice.org/src"
@@ -267,13 +267,12 @@ _langs = []
 def post_extract(self):
     # copy the files over
     for s in source[1:]:
-        if s.startswith("!"):
-            s = s[1:]
+        s = s.removeprefix("!")
         self.cp(self.sources_path / s[s.rfind("/") + 1 :], self.cwd)
 
 
 def init_configure(self):
-    if self.profile().endian == "big":
+    if self.profile.endian == "big":
         self.configure_args += ["--disable-skia"]
     if self.has_lto():
         self.configure_args += ["--enable-lto"]

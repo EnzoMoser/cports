@@ -1,5 +1,5 @@
 pkgname = "kaccounts-integration"
-pkgver = "26.08.0"
+pkgver = "26.08.2"
 pkgrel = 0
 build_style = "cmake"
 hostmakedepends = [
@@ -30,11 +30,11 @@ pkgdesc = "KDE integration for Accounts-SSO and SignOn-SSO"
 license = "GPL-2.0-or-later"
 url = "https://invent.kde.org/network/kaccounts-integration"
 source = f"$(KDE_SITE)/release-service/{pkgver}/src/kaccounts-integration-{pkgver}.tar.xz"
-sha256 = "844b49415e8bcc88e02c7cf85b058866909d9e5d73131efe10ad23eec1d71a28"
+sha256 = "1d8b11fb01151f4a44cae517bb21b10740c130856b99ab42cefd72d4945d62ca"
 hardening = ["vis"]
 
 
-if self.profile().arch in ["aarch64", "ppc64le", "x86_64"]:
+if self.profile.arch in ["aarch64", "ppc64le", "x86_64"]:
     depends += ["signon-ui"]
 
 

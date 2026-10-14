@@ -1,5 +1,5 @@
 pkgname = "rspamd"
-pkgver = "4.1.5"
+pkgver = "4.2.1"
 pkgrel = 0
 build_style = "cmake"
 configure_args = [
@@ -38,11 +38,11 @@ pkgdesc = "Spam filtering system"
 license = "Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND CC0-1.0 AND LGPL-3.0-only AND MIT AND Zlib"
 url = "https://rspamd.com"
 source = f"https://github.com/rspamd/rspamd/archive/refs/tags/{pkgver}.tar.gz"
-sha256 = "b5e02ae27c49e6f4e11054f4ac0616ad1b6d4ac414deb2ff6b4c250e9f9b7fb7"
+sha256 = "ea3f90ea4b68728fc4a5e2a36acd8a6d6e8b1b583a3353b95ae7a5f6fb4cd0e1"
 # check may be disabled
 options = ["etcfiles"]
 
-match self.profile().arch:
+match self.profile.arch:
     case "aarch64" | "ppc64le" | "x86_64":
         configure_args += ["-DENABLE_HYPERSCAN=ON"]
         makedepends += ["luajit-devel", "vectorscan-devel"]
@@ -58,7 +58,7 @@ def post_patch(self):
     self.rm("contrib/fmt", recursive=True)
     self.mkdir("contrib/fmt/include", parents=True)
     self.ln_s(
-        self.profile().sysroot / "usr/include/fmt", "contrib/fmt/include/fmt"
+        self.profile.sysroot / "usr/include/fmt", "contrib/fmt/include/fmt"
     )
 
 

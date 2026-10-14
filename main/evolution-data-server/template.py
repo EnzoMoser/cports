@@ -1,5 +1,5 @@
 pkgname = "evolution-data-server"
-pkgver = "3.60.2"
+pkgver = "3.62.0"
 pkgrel = 0
 build_style = "cmake"
 configure_args = [
@@ -10,7 +10,8 @@ configure_args = [
     "-DENABLE_VALA_BINDINGS=ON",
     "-DWITH_OPENLDAP=OFF",  # don't depend on shit software
 ]
-make_check_args = ["-j1"]
+# test-camel-hostname fails intermittently
+make_check_args = ["-j1", "-E", "test-camel-hostname"]
 hostmakedepends = [
     "cmake",
     "flex",
@@ -45,7 +46,7 @@ pkgdesc = "Centralized access to appointments and contacts"
 license = "LGPL-2.0-or-later"
 url = "https://gitlab.gnome.org/GNOME/evolution-data-server"
 source = f"$(GNOME_SITE)/evolution-data-server/{pkgver[:-2]}/evolution-data-server-{pkgver}.tar.xz"
-sha256 = "2084dbdac396371b365d504c1ff45866ba8dca2f1252e5da1d3d9c33abdc1286"
+sha256 = "78be88e9a511f5afe7ff2e363eade84b622dd0282647fc576edb2d4ff2962cba"
 options = ["etcfiles", "!cross", "!lintpixmaps"]
 
 

@@ -1,5 +1,5 @@
 pkgname = "php8.3"
-pkgver = "8.3.33"
+pkgver = "8.3.35"
 _majver = pkgver[0 : pkgver.rfind(".")]
 pkgrel = 0
 _apiver = "20230831"
@@ -133,10 +133,10 @@ pkgdesc = "HTML-embedded scripting language"
 license = "PHP-3.01"
 url = "https://www.php.net"
 source = f"{url}/distributions/php-{pkgver}.tar.gz"
-sha256 = "f43566da482abeb1614a512dabeda74967847ce8e176a977390d7a115e7812fd"
+sha256 = "e60396276fd57e8210f88919d9acd4aab98d65fbb7f431c13285ca1fb04ff205"
 options = ["etcfiles"]
 
-if self.profile().arch in ["loongarch64"]:
+if self.profile.arch in ["loongarch64"]:
     makedepends += ["libucontext-devel"]
     tool_flags = {"LDFLAGS": ["-lucontext"]}
 
@@ -191,7 +191,7 @@ def post_patch(self):
         "ext/ldap/tests/*.phpt",
     ]
 
-    match self.profile().arch:
+    match self.profile.arch:
         case "ppc64le":
             # all related to fibers?
             failing_tests += [

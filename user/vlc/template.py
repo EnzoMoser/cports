@@ -1,55 +1,109 @@
 pkgname = "vlc"
-# git because no release of 4 yet (qt6, ffmpeg etc)
-pkgver = "3.0.20_git20240928"
-pkgrel = 4
-_gitrev = "e5fc9cc4be87e0f8c7e06e1cedd7e061a390c6ee"
+pkgver = "3.0.24"
+pkgrel = 0
 build_style = "gnu_configure"
 configure_args = [
-    # TODO: explicitly pick stuff (nicer in meson...)
     "--disable-a52",
+    "--disable-alsa",
+    "--disable-dca",
+    "--disable-dvbpsi",
+    "--disable-freerdp",  # not compatible with freerdp 3
+    "--disable-gme",
+    "--disable-libmpeg2",
+    "--disable-libplacebo",  # not compatible with libplacebo 7
+    "--disable-live555",
+    "--disable-mad",
+    "--disable-static",
+    "--disable-upnp",
+    "--disable-vdpau",
+    "--enable-bluray",
+    "--enable-chromaprint",
+    "--enable-chromecast",
+    "--enable-dav1d",
+    "--enable-dvdnav",
+    "--enable-dvdread",
+    "--enable-faad",
+    "--enable-flac",
+    "--enable-fluidsynth",
+    "--enable-fontconfig",
+    "--enable-freetype",
+    "--enable-fribidi",
+    "--enable-gnutls",
+    "--enable-gst-decode",
+    "--enable-harfbuzz",
+    "--enable-jack",
+    "--enable-libass",
+    "--enable-libgcrypt",
+    "--enable-libva",
+    "--enable-libxml2",
+    "--enable-lua",
+    "--enable-matroska",
     "--enable-merge-ffmpeg",
+    "--enable-microdns",
+    "--enable-mod",
+    "--enable-mtp",
+    "--enable-ncurses",
+    "--enable-nfs",
+    "--enable-notify",
+    "--enable-ogg",
+    "--enable-opus",
+    "--enable-pulse",
+    "--enable-qt",
+    "--enable-librist",
+    "--enable-samplerate",
+    "--enable-secret",
     "--enable-skins2",
+    "--enable-smbclient",
+    "--enable-sout",
+    "--enable-soxr",
+    "--enable-speex",
+    "--enable-srt",
+    "--enable-svg",
+    "--enable-taglib",
+    "--enable-theora",
+    "--enable-twolame",
+    "--enable-udev",
+    "--enable-v4l2",
+    "--enable-vpx",
+    "--enable-wayland",
+    "--enable-x264",
+    "--enable-x265",
 ]
+configure_env = {"NOCONFIGURE": "1"}
+configure_gen = ["./bootstrap"]
 hostmakedepends = [
     "automake",
     "bison",
     "flex",
     "gettext-devel",
-    "libtool",
+    "libtool",  # slibtool fails to find -lvlc
+    "lua5.1",
     "pkgconf",
     "protobuf-protoc",
     "qt6-qtbase",
-    "qt6-qttools",
-    "spirv-tools",
 ]
 makedepends = [
     "avahi-devel",
-    "cairo-devel",
     "chromaprint-devel",
     "dav1d-devel",
-    "elogind-devel",
+    "dbus-devel",
+    "faad2-devel",
     "ffmpeg-devel",
     "flac-devel",
     "fluidsynth-devel",
     "fontconfig-devel",
+    "freerdp-devel",
     "freetype-devel",
     "fribidi-devel",
     "gnutls-devel",
     "gst-plugins-base-devel",
-    "kwindowsystem-devel",
-    "libaom-devel",
-    "libarchive-devel",
+    "harfbuzz-devel",
     "libass-devel",
     "libbluray-devel",
-    "libcddb-devel",
-    "libdrm-devel",
+    "libcdio-devel",
     "libdvdnav-devel",
     "libdvdread-devel",
-    "libebur128-devel",
     "libgcrypt-devel",
-    "libgme-devel",
-    "libidn2-devel",
-    "libjpeg-turbo-devel",
     "libmatroska-devel",
     "libmicrodns-devel",
     "libmodplug-devel",
@@ -58,33 +112,32 @@ makedepends = [
     "libnotify-devel",
     "libogg-devel",
     "libplacebo-devel",
-    "libpng-devel",
     "libpulse-devel",
     "librist-devel",
     "librsvg-devel",
+    "libsamplerate-devel",
     "libsecret-devel",
-    "libssh2-devel",
     "libtheora-devel",
     "libva-devel",
-    "libvorbis-devel",
     "libvpx-devel",
-    "libxcursor-devel",
-    "libxext-devel",
+    "libx11-devel",
+    "libxcb-devel",
     "libxinerama-devel",
     "libxml2-devel",
     "libxpm-devel",
-    "lua5.4-devel",
+    "linux-headers",
+    "lua5.1-devel",
     "mesa-devel",
-    "mpg123-devel",
+    "minizip-devel",
     "ncurses-devel",
     "opus-devel",
+    "pipewire-jack-devel",
     "protobuf-devel",
     "qt6-qt5compat-devel",
-    "qt6-qtbase-private-devel",  # qquickitem_p.h/qtguiglobal_p.h
+    "qt6-qtbase-devel",
+    "qt6-qtbase-private-devel",
     "qt6-qtdeclarative-devel",
     "qt6-qtsvg-devel",
-    "qt6-qtwayland-devel",
-    "rnnoise-devel",
     "samba-client-devel",
     "soxr-devel",
     "speex-devel",
@@ -93,56 +146,65 @@ makedepends = [
     "taglib-devel",
     "twolame-devel",
     "udev-devel",
-    "vulkan-loader-devel",
+    "v4l-utils-devel",
+    "wayland-devel",
+    "wayland-protocols",
     "x264-devel",
     "x265-devel",
+    "xcbproto",
+    "xorgproto",
+    "zlib-ng-compat-devel",
 ]
-pkgdesc = "Multimedia Player"
+pkgdesc = "Media player program"
 license = "GPL-2.0-or-later AND LGPL-2.1-or-later"
-url = "https://www.videolan.org"
-source = f"https://code.videolan.org/videolan/vlc/-/archive/{_gitrev}.tar.gz"
-sha256 = "3d5a0b072d275e5f3e2f8afe58625f6e81ff6acfd35d8c9c16f5e9cef8828622"
-# v4l2
-tool_flags = {"CFLAGS": ["-Wno-incompatible-function-pointer-types"]}
-# crashes in test_src_input_decoder
+url = "https://www.videolan.org/vlc"
+source = f"https://get.videolan.org/vlc/{pkgver}/vlc-{pkgver}.tar.xz"
+sha256 = "e7cab503d1d7d5849b89d2cf0e1ee60d0ef6d012407791b644b9cfc0cc225fdf"
+# silence about fortify
+tool_flags = {
+    "CFLAGS": ["-Wno-macro-redefined"],
+    "CXXFLAGS": ["-Wno-macro-redefined"],
+}
+# crashes
 hardening = ["!int"]
-exec_wrappers = [
-    # put it in path
-    ("/usr/lib/qt6/bin/qtpaths6", "qtpaths6"),
-]
-restricted = "does not work well yet"
-
-# TODO:
-# - daemon service ?
-# - maybe split plugins a bit
-# - fill out missing libs
+exec_wrappers = [("/usr/bin/luac5.1", "luac")]
 
 
-def post_extract(self):
-    with open(f"{self.cwd}/src/revision.txt", "w") as rev:
-        rev.write(f"{_gitrev}\n")
-
-
-@subpackage("vlc-devel")
-def _(self):
-    # FIXME: maybe shouldn't even be installed?
-    return self.default_devel(extra=["usr/lib/vlc/libcompat.a"])
+def post_install(self):
+    self.uninstall("usr/lib/vlc/libcompat.a")
+    self.uninstall("usr/lib/vlc/plugins/plugins.dat")
 
 
 @subpackage("vlc-qt")
 def _(self):
-    self.subdesc = "Qt frontend"
-    self.depends = [self.parent]
+    self.subdesc = "Qt GUI"
+    self.depends = [self.parent, "hicolor-icon-theme"]
+    self.install_if = [self.parent]
+
     return [
         "usr/bin/qvlc",
         "usr/share/applications",
         "usr/share/icons",
         "usr/share/metainfo",
-        "usr/lib/vlc/plugins/gui/libqt_plugin.so",
+        "usr/lib/vlc/plugins/gui/libqt*",
     ]
 
 
 @subpackage("vlc-libs")
 def _(self):
     self.triggers = ["/usr/lib/vlc/plugins"]
-    return self.default_libs(extra=["usr/lib/vlc/vlc-cache-gen"])
+
+    def _extras():
+        self.take("usr/lib/vlc/vlc-cache-gen")
+        # take all the plugins except the ui ones
+        for p in (self.parent.destdir / "usr/lib/vlc/plugins").iterdir():
+            if p.name == "gui":
+                continue
+            self.take(f"usr/lib/vlc/plugins/{p.name}")
+
+    return self.default_libs(extra=_extras)
+
+
+@subpackage("vlc-devel")
+def _(self):
+    return self.default_devel()

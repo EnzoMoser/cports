@@ -1,5 +1,5 @@
 pkgname = "akonadi-calendar"
-pkgver = "26.08.0"
+pkgver = "26.08.2"
 pkgrel = 0
 build_style = "cmake"
 configure_args = [
@@ -44,7 +44,7 @@ url = "https://community.kde.org/KDE_PIM"
 source = (
     f"$(KDE_SITE)/release-service/{pkgver}/src/akonadi-calendar-{pkgver}.tar.xz"
 )
-sha256 = "6c2c21d3932c4c4905ecd6fb0b21b265ba9dc45fd35e538e2795f3b09aae2c5f"
+sha256 = "efe0c094908a4febe939ff5c96fb191cf251d3821314108b5ebcfdd488c0346b"
 options = ["etcfiles"]
 
 

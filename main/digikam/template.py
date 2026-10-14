@@ -1,6 +1,6 @@
 pkgname = "digikam"
 pkgver = "9.1.0"
-pkgrel = 1
+pkgrel = 4
 build_style = "cmake"
 configure_args = [
     "-DBUILD_TESTING=ON",
@@ -90,7 +90,7 @@ tool_flags = {
 # a bunch of them fail with some mediawiki header check
 options = ["!check"]
 
-if self.profile().arch in [
+if self.profile.arch in [
     "aarch64",
     "loongarch64",
     "ppc64le",

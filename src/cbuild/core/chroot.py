@@ -63,7 +63,7 @@ def get_world_base():
 
 
 def _subst_in(pat, rep, src, dest=None):
-    inf = open(src, "r")
+    inf = open(src)
     if dest:
         outf = open(dest, "w")
     else:
@@ -111,6 +111,11 @@ def _prepare_etc():
             if not dpath.exists() and spath.exists():
                 dpath.parent.mkdir(0o755, parents=True, exist_ok=True)
                 shutil.copy(spath, dpath.parent)
+
+    # ccache static values
+    with open(tfp / "ccache.conf", "w") as mf:
+        mf.write("cache_dir = /cbuild_cache/ccache\n")
+        mf.write("temporary_dir = /tmp/ccache\n")
 
     # delete potential shadow so sysusers does not fail
     (tfp / "shadow").unlink(missing_ok=True)
@@ -546,7 +551,7 @@ def cleanup_world(bootstrapping, prof=None, perform=True):
     old_world = set()
     new_world = set()
 
-    with open(paths.bldroot() / "etc/apk/world", "r") as inf:
+    with open(paths.bldroot() / "etc/apk/world") as inf:
         for ln in inf:
             old_world.add(ln.strip())
 
@@ -621,7 +626,7 @@ def update(pkg):
     if isinstance(pkg, str):
         return
 
-    prof = pkg.profile()
+    prof = pkg.profile
 
     # not cross, so we don't care
     if not prof.cross:
@@ -719,20 +724,8 @@ def enter(
         if "HTTP_PROXY_AUTH" in os.environ:
             envs["HTTP_PROXY_AUTH"] = os.environ["HTTP_PROXY_AUTH"]
 
-    # if running from template, ensure wrappers are early in executable path
-    if "CBUILD_STATEDIR" in envs:
-        envs["PATH"] = envs["CBUILD_STATEDIR"] + "/wrappers:" + envs["PATH"]
-
     if new_session:
         envs["PYTHONUNBUFFERED"] = "1"
-
-    # ccache path is searched first
-    #
-    # this has the implication of having ccache invoke whatever cc wrapper
-    # we have at the time, rather than the other way around, which means
-    # the wrappers don't have to account for ccache explicitly
-    if "CCACHEPATH" in envs:
-        envs["PATH"] = envs["CCACHEPATH"] + ":" + envs["PATH"]
 
     if ro_root:
         root_bind = "--ro-bind"

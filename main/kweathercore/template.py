@@ -1,5 +1,5 @@
 pkgname = "kweathercore"
-pkgver = "26.08.0"
+pkgver = "26.08.2"
 pkgrel = 0
 build_style = "cmake"
 # needs to get location
@@ -23,7 +23,7 @@ url = "https://invent.kde.org/libraries/kweathercore"
 source = (
     f"$(KDE_SITE)/release-service/{pkgver}/src/kweathercore-{pkgver}.tar.xz"
 )
-sha256 = "9a9624154978a473a3c9e763374a9c9500d79e21dd80125fc2342a000f0253cb"
+sha256 = "a8a5ad8ab8c10f3e8352aaa6e0bdf746a489b78f3ebed7e53e4d42d520994961"
 
 
 @subpackage("kweathercore-devel")

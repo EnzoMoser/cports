@@ -1,5 +1,5 @@
 pkgname = "openssl3"
-pkgver = "3.6.4"
+pkgver = "3.6.5"
 pkgrel = 0
 build_style = "configure"
 configure_script = "Configure"
@@ -30,7 +30,7 @@ pkgdesc = "Toolkit for Secure Sockets Layer and Transport Layer Security"
 license = "Apache-2.0"
 url = "https://www.openssl.org"
 source = f"https://github.com/openssl/openssl/releases/download/openssl-{pkgver}/openssl-{pkgver}.tar.gz"
-sha256 = "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef"
+sha256 = "a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98"
 compression = "deflate"
 # the codebase is not LTO-ready:
 # https://github.com/openssl/openssl/issues/18663
@@ -42,17 +42,17 @@ if self.stage > 0:
 else:
     configure_args += ["no-asm"]
 
-match self.profile().arch:
+match self.profile.arch:
     case "x86_64":
         configure_args += ["enable-ec_nistp_64_gcc_128", "linux-x86_64"]
     case "aarch64" | "ppc64le" | "ppc64" | "ppc":
-        configure_args += [f"linux-{self.profile().arch}"]
+        configure_args += [f"linux-{self.profile.arch}"]
     case "riscv64" | "loongarch64":
-        configure_args += [f"linux64-{self.profile().arch}"]
+        configure_args += [f"linux64-{self.profile.arch}"]
     case "armhf" | "armv7":
         configure_args += ["linux-armv4"]
     case _:
-        broken = f"Unknown CPU architecture: {self.profile().arch}"
+        broken = f"Unknown CPU architecture: {self.profile.arch}"
 
 
 def pre_configure(self):

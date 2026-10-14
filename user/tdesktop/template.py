@@ -1,6 +1,6 @@
 pkgname = "tdesktop"
 pkgver = "7.0.9"
-pkgrel = 0
+pkgrel = 2
 archs = ["aarch64", "loongarch64", "ppc64le", "riscv64", "x86_64"]
 build_style = "cmake"
 configure_args = [
@@ -76,9 +76,9 @@ tool_flags = {"CXXFLAGS": [], "CFLAGS": []}
 # crashes
 hardening = ["!int"]
 
-if self.profile().endian == "big":
+if self.profile.endian == "big":
     broken = "broken at protocol level"
-elif self.profile().arch == "riscv64":
+elif self.profile.arch == "riscv64":
     broken = "compiler segfault"
 
 

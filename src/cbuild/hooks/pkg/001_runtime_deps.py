@@ -127,7 +127,7 @@ def _scan_so(pkg):
                 subpkg_deps[depn] = True
             continue
         # otherwise, check if it came from an installed dependency
-        bp = pkg.rparent.profile()
+        bp = pkg.rparent.profile
         if bp.cross:
             broot = paths.bldroot() / bp.sysroot.relative_to("/")
             aarch = bp.arch
@@ -199,8 +199,8 @@ def _scan_pc(pkg):
     # all subpackages must declare their pkg-config path for the scan
     pcpaths = []
 
-    if pkg.rparent.profile().cross:
-        sr = pkg.rparent.profile().sysroot
+    if pkg.rparent.profile.cross:
+        sr = pkg.rparent.profile.sysroot
         hsr = paths.bldroot() / sr.relative_to("/")
         if (hsr / "usr/lib/pkgconfig").is_dir():
             pcpaths.append(str(sr / "usr/lib/pkgconfig"))
@@ -223,10 +223,10 @@ def _scan_pc(pkg):
     penv = {
         "PKG_CONFIG_PATH": pcpaths,
     }
-    if pkg.rparent.profile().cross:
-        penv["PKG_CONFIG_SYSROOT_DIR"] = str(pkg.rparent.profile().sysroot)
+    if pkg.rparent.profile.cross:
+        penv["PKG_CONFIG_SYSROOT_DIR"] = str(pkg.rparent.profile.sysroot)
         penv["PKG_CONFIG_LIBDIR"] = str(
-            pkg.rparent.profile().sysroot / "usr/lib/pkgconfig"
+            pkg.rparent.profile.sysroot / "usr/lib/pkgconfig"
         )
 
     def scan_pc(v):
@@ -292,8 +292,7 @@ def _scan_pc(pkg):
                 return sp.pkgname
         return None
 
-    for k in pcreq:
-        pn = pcreq[k]
+    for k, pn in pcreq.items():
         # provided by one of ours or by a dependency
         prov = subpkg_provides_pc(pn)
         if not prov:
@@ -353,9 +352,7 @@ def _scan_svc(pkg):
         pth = pkg.destdir / "usr/lib/dinit.d"
         if pfx == "usvc":
             pth = pth / "user"
-        if (pth / pn).exists():
-            return True
-        return False
+        return (pth / pn).exists()
 
     def subpkg_provides_svc(pn, pfx):
         for sp in pkg.rparent.subpkg_all:
@@ -371,8 +368,7 @@ def _scan_svc(pkg):
     for f in pkg.destdir.glob("usr/lib/dinit.d/user/*"):
         scan_svc(f, "usvc")
 
-    for sv in svcreq:
-        pfx = svcreq[sv]
+    for sv, pfx in svcreq.items():
         # provided by self
         if pkg_provides_svc(pkg, sv, pfx):
             continue
@@ -483,7 +479,7 @@ def invoke(pkg):
     if not pkg.options["scanrundeps"]:
         return
 
-    with flock.lock(flock.apklock(pkg.rparent.profile().arch)):
+    with flock.lock(flock.apklock(pkg.rparent.profile.arch)):
         if not pkg.autopkg:
             _scan_so(pkg)
             _scan_pc(pkg)

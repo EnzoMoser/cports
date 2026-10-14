@@ -1,6 +1,6 @@
 pkgname = "lazygit"
 pkgver = "0.63.1"
-pkgrel = 1
+pkgrel = 2
 build_style = "go"
 make_build_args = [f"-ldflags=-X main.version=v{pkgver}"]
 hostmakedepends = ["go"]
@@ -13,7 +13,7 @@ sha256 = "227ff262138440ff68e893f6c95c4e586e954c46913106d84fff78d220e18b6c"
 # need to be in git checkout
 options = ["!check"]
 
-if self.profile().arch in ["loongarch64"]:
+if self.profile.arch in ["loongarch64"]:
     broken = (
         "vendor/github.com/creack/pty/pty_linux.go:39:8: undefined: _C_uint"
     )

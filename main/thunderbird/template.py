@@ -1,5 +1,5 @@
 pkgname = "thunderbird"
-pkgver = "155.0"
+pkgver = "157.0.1"
 pkgrel = 0
 hostmakedepends = [
     "automake",
@@ -57,7 +57,7 @@ pkgdesc = "Thunderbird mail client"
 license = "GPL-3.0-only AND LGPL-2.1-only AND LGPL-3.0-only AND MPL-2.0"
 url = "https://www.thunderbird.net"
 source = f"$(MOZILLA_SITE)/thunderbird/releases/{pkgver}/source/thunderbird-{pkgver}.source.tar.xz"
-sha256 = "116a5eff70f3405f62247960ac6ca7c781ae99f313c5fc499c9c93b21f28b242"
+sha256 = "f4f46de621d44ab7718a5878e0fcaff136e13f0f326db657c38953dc0151a1e8"
 debug_level = 1  # defatten, especially with LTO
 tool_flags = {
     "LDFLAGS": ["-Wl,-rpath=/usr/lib/thunderbird", "-Wl,-z,stack-size=2097152"]
@@ -78,11 +78,11 @@ hardening = ["!int"]
 # XXX: maybe someday
 options = ["!cross", "!check"]
 
-if self.profile().endian == "big":
+if self.profile.endian == "big":
     broken = "broken colors, needs patching, etc."
 
 # crashes compiler in gl.c
-if self.profile().arch == "riscv64":
+if self.profile.arch == "riscv64":
     tool_flags["CXXFLAGS"] = ["-U_FORTIFY_SOURCE"]
 
 
@@ -95,8 +95,12 @@ def post_extract(self):
 def post_patch(self):
     from cbuild.util import cargo
 
+    for crate in ["audio_thread_priority"]:
+        cargo.clear_vendor_checksums(self, crate, vendor_dir="third_party/rust")
+
     # lolrust failed to calculate checksum of: /builddir/thunderbird-147.0/comm/third_party/rust/minimal-lexical/.gitmodules
     for crate in [
+        "audio_thread_priority",
         "cubeb-sys",
         "glslopt",
         "minimal-lexical",
@@ -115,7 +119,7 @@ def init_configure(self):
     self.env["MOZBUILD_STATE_PATH"] = str(self.chroot_srcdir / ".mozbuild")
     self.env["AS"] = self.get_tool("CC")
     self.env["MOZ_MAKE_FLAGS"] = f"-j{self.make_jobs}"
-    self.env["RUST_TARGET"] = self.profile().triplet
+    self.env["RUST_TARGET"] = self.profile.triplet
     # use all the cargo env vars we enforce
     self.env.update(cargo.get_environment(self))
 
@@ -124,8 +128,8 @@ def configure(self):
     conf_opts = [
         "--prefix=/usr",
         "--libdir=/usr/lib",
-        "--host=" + self.profile().triplet,
-        "--target=" + self.profile().triplet,
+        "--host=" + self.profile.triplet,
+        "--target=" + self.profile.triplet,
         "--disable-install-strip",
         "--disable-strip",
         "--enable-linker=lld",
@@ -151,7 +155,6 @@ def configure(self):
         "--enable-audio-backends=pulseaudio",
         "--enable-dbus",
         "--enable-default-toolkit=cairo-gtk3-wayland",
-        "--enable-ffmpeg",
         "--enable-jack",
         "--enable-necko-wifi",
         "--enable-pulseaudio",
@@ -168,7 +171,7 @@ def configure(self):
         "--with-distribution-id=org.chimera-linux",
     ]
 
-    match self.profile().arch:
+    match self.profile.arch:
         case "x86_64" | "aarch64":
             # broken with rust 1.78 as it enables packed_simd feature that uses removed platform_intrinsics
             # conf_opts += ["--enable-rust-simd"]

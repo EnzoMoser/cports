@@ -1,11 +1,11 @@
 pkgname = "webkitgtk"
-pkgver = "2.52.6"
+pkgver = "2.54.1"
 pkgrel = 0
 build_style = "cmake"
 configure_args = [
     "-DPORT=GTK",
     "-DCMAKE_SKIP_RPATH=ON",
-    f"-DCMAKE_LINKER={self.profile().triplet}-clang",
+    f"-DCMAKE_LINKER={self.profile.triplet}-clang",
     # -DUSE_*
     "-DUSE_GTK4=OFF",
     "-DUSE_LD_LLD=ON",
@@ -14,6 +14,7 @@ configure_args = [
     "-DUSE_WOFF2=ON",
     "-DUSE_FLITE=OFF",
     "-DUSE_SPIEL=ON",
+    "-DUSE_MIMALLOC=OFF",
     # -DENABLE_*
     "-DENABLE_BUBBLEWRAP_SANDBOX=ON",
     "-DENABLE_DOCUMENTATION=OFF",
@@ -94,7 +95,7 @@ pkgdesc = "GTK port of the WebKit browser engine"
 license = "LGPL-2.1-or-later AND BSD-2-Clause"
 url = "https://webkitgtk.org"
 source = f"{url}/releases/webkitgtk-{pkgver}.tar.xz"
-sha256 = "179a2ea3f8f6edd4be7f31fdc55afc57bd0729f1fba648c61d4181539ac116fc"
+sha256 = "ea0bbb02dbdbc596874a4e7ad35b66645b3e0a232bd0e4081de5ed92eb0a397d"
 debug_level = 1  # otherwise LTO link runs out of memory + fat debuginfo
 tool_flags = {
     "CFLAGS": ["-DNDEBUG"],
@@ -116,7 +117,7 @@ hardening = ["!int"]
 # huge testsuite
 options = ["!check"]
 
-match self.profile().arch:
+match self.profile.arch:
     case "x86_64" | "aarch64":
         configure_args += ["-DENABLE_JIT=ON", "-DENABLE_C_LOOP=OFF"]
     case _:
@@ -126,15 +127,15 @@ match self.profile().arch:
             "-DENABLE_WEBASSEMBLY=OFF",
         ]
 
-if self.profile().arch == "loongarch64":
+if self.profile.arch == "loongarch64":
     tool_flags["CXXFLAGS"] += ["-DSIMDE_FLOAT16_API=SIMDE_FLOAT16_API_PORTABLE"]
 
-if self.profile().arch == "riscv64":
+if self.profile.arch == "riscv64":
     # libpas/bmalloc link errors
     configure_args += ["-DUSE_SYSTEM_MALLOC=ON"]
 
 # LTO broken on aarch64 (JIT segfault)
-if self.has_lto(force=True) and self.profile().arch != "aarch64":
+if self.has_lto(force=True) and self.profile.arch != "aarch64":
     configure_args += ["-DLTO_MODE=thin"]
 else:
     options += ["!lto"]

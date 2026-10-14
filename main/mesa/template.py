@@ -1,5 +1,5 @@
 pkgname = "mesa"
-pkgver = "26.2.2"
+pkgver = "26.2.4"
 pkgrel = 0
 build_style = "meson"
 configure_args = [
@@ -67,7 +67,7 @@ pkgdesc = "Mesa 3D Graphics Library"
 license = "MIT"
 url = "https://www.mesa3d.org"
 source = f"https://archive.mesa3d.org/mesa-{pkgver.replace('_', '-')}.tar.xz"
-sha256 = "eeb29ca7e56cfaa8e8a79538dcf834e3b18e501c31bef5145e959ea437cc4216"
+sha256 = "bce5f7fbebb934373b86c999a064d52fb5065878dc57f287f95346648ec832e9"
 # lots of issues in swrast and so on
 hardening = ["!int"]
 # cba to deal with cross patching nonsense
@@ -79,7 +79,7 @@ _vulkan_drivers = []
 _have_llvm = False
 
 # llvmpipe only properly supports a few archs
-match self.profile().arch:
+match self.profile.arch:
     case "x86_64" | "aarch64" | "loongarch64" | "ppc64le" | "riscv64":
         _have_llvm = True
     case _:
@@ -96,7 +96,7 @@ if _have_llvm:
 _have_nvidia = True
 _have_amd = True
 # intel_clc fails on big
-_have_intel = self.profile().endian != "big"
+_have_intel = self.profile.endian != "big"
 _have_hwdec = True
 _have_virgl = True
 
@@ -109,7 +109,7 @@ _have_opencl = False
 _have_vulkan = False
 _have_zink = False
 
-match self.profile().arch:
+match self.profile.arch:
     case "x86_64":
         _have_intel = True
         _have_intel_igpu = True
@@ -140,7 +140,7 @@ if _have_intel_igpu:
 
 if _have_nvidia:
     _gallium_drivers += ["nouveau"]
-    if self.profile().endian != "big":
+    if self.profile.endian != "big":
         _vulkan_drivers += ["nouveau"]
     if _have_arm:
         _gallium_drivers += ["tegra"]

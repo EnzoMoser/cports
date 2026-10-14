@@ -1,5 +1,5 @@
 pkgname = "massif-visualizer"
-pkgver = "26.08.0"
+pkgver = "26.08.2"
 pkgrel = 0
 build_style = "cmake"
 hostmakedepends = [
@@ -26,4 +26,4 @@ pkgdesc = "KDE visualizer for valgrind massif profile files"
 license = "GPL-2.0-or-later"
 url = "https://apps.kde.org/massif_visualizer"
 source = f"$(KDE_SITE)/release-service/{pkgver}/src/massif-visualizer-{pkgver}.tar.xz"
-sha256 = "46d080f34e71cd6a618650171b8f8ab8b1128667bc982372e07fc9c26ea4a243"
+sha256 = "c05c0fab639d72443e6f89f9ddd52b55c32ba0e830910d162d1c95c0b6f20b86"

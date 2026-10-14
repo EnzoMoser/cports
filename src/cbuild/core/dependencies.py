@@ -41,7 +41,7 @@ def _srcpkg_ver(pkgn, pkgb):
 
     tmplv = template.Template(
         pkgp,
-        pkgb.profile().arch,
+        pkgb.profile.arch,
         True,
         False,
         (1, 1),
@@ -55,8 +55,8 @@ def _srcpkg_ver(pkgn, pkgb):
     if not hasattr(modv, "pkgver") or not hasattr(modv, "pkgrel"):
         return None, tmplv.full_pkgname
 
-    pver = getattr(modv, "pkgver")
-    prel = getattr(modv, "pkgrel")
+    pver = modv.pkgver
+    prel = modv.pkgrel
     if pver is None or prel is None:
         return None, tmplv.full_pkgname
 
@@ -131,7 +131,7 @@ def setup_depends(pkg, only_names=False):
             rdeps.append((orig, dep))
 
     cdeps = []
-    if not pkg.profile().cross and (pkg.options["check"] or pkg._force_check):
+    if not pkg.profile.cross and (pkg.options["check"] or pkg._force_check):
         cdeps = pkg.checkdepends
 
     if pkg.stage > 0 and not only_names:
@@ -170,18 +170,18 @@ def _install_from_repo(pkg, pkglist, cross=False):
             capture_output=True,
             allow_untrusted=not signkey,
         )
-    elif cross and pkg.profile().cross:
+    elif cross and pkg.profile.cross:
         ret = apki.call(
             "add",
             [
                 "--root",
-                str(pkg.profile().sysroot),
+                str(pkg.profile.sysroot),
                 "--no-scripts",
                 *pkglist,
             ],
             pkg,
             capture_output=True,
-            arch=pkg.profile().arch,
+            arch=pkg.profile.arch,
             allow_untrusted=not signkey,
             chroot=True,
         )
@@ -313,9 +313,9 @@ def install(pkg, origpkg, step, depmap, hostdep, update_check):
     if pkg.build_style:
         style = f" [{pkg.build_style}]"
 
-    pprof = pkg.profile()
+    pprof = pkg.profile
     tarch = pprof.arch
-    cross = not not pprof.cross
+    cross = pprof.cross
 
     if pkg.pkgname != origpkg:
         pkg.log(f"building{style} (dependency of {origpkg}) for {tarch}...")
@@ -515,6 +515,7 @@ def install(pkg, origpkg, step, depmap, hostdep, update_check):
                     force_check=pkg._force_check,
                     stage=pkg.stage,
                     allow_restricted=pkg._allow_restricted,
+                    allow_ci=pkg._allow_ci,
                     data=pkg._data,
                     linter=pkg._linter,
                     formatter=pkg._formatter,
@@ -545,6 +546,7 @@ def install(pkg, origpkg, step, depmap, hostdep, update_check):
                     force_check=pkg._force_check,
                     stage=pkg.stage,
                     allow_restricted=pkg._allow_restricted,
+                    allow_ci=pkg._allow_ci,
                     data=pkg._data,
                 ),
                 depmap,

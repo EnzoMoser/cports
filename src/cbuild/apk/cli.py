@@ -158,10 +158,11 @@ def call(
         )
     else:
         retv = subprocess.run(
-            [paths.apk(), *cmd, *args],
+            ["env", "APK_CONFIG=/dev/null", paths.apk(), *cmd, *args],
             cwd=cwd,
             env=env,
             capture_output=capture_output,
+            check=False,
         )
     if return_repos:
         return retv, crepos
@@ -188,7 +189,7 @@ def query(fields, args, mrepo, return_repos=False, **kwargs):
 
 
 def get_provider(pkgn, pkg=None):
-    cpf = pkg.rparent.profile() if pkg else None
+    cpf = pkg.rparent.profile if pkg else None
 
     if pkg and cpf.cross:
         sysp = paths.bldroot() / cpf.sysroot.relative_to("/")
@@ -261,7 +262,7 @@ def summarize_repo(repopath, olist, quiet=False):
                     f"\f[orange]WARNING: Using lower version ({fromf} => {tof}): newer timestamp..."
                 )
 
-    for k, v in rtimes.items():
+    for v in rtimes.values():
         olist.append(v[1])
 
     return obsolete
@@ -349,7 +350,11 @@ def build_index(repopath, epoch, allow_untrusted=False):
 
 
 def get_arch():
-    sr = subprocess.run([paths.apk(), "--print-arch"], capture_output=True)
+    sr = subprocess.run(
+        ["env", "APK_CONFIG=/dev/null", paths.apk(), "--print-arch"],
+        capture_output=True,
+        check=False,
+    )
     if sr.returncode != 0:
         return None
     rs = sr.stdout.strip().decode()

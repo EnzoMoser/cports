@@ -1,5 +1,5 @@
 pkgname = "stgit"
-pkgver = "2.5.4"
+pkgver = "2.7.0"
 pkgrel = 0
 build_style = "cargo"
 hostmakedepends = [
@@ -19,17 +19,19 @@ url = "https://stacked-git.github.io"
 source = (
     f"https://github.com/stacked-git/stgit/archive/refs/tags/v{pkgver}.tar.gz"
 )
-sha256 = "cae61785a59e9e0ac85045e41eb8e0ccfd831d6f67d16941e53bcf4a856cec5f"
+sha256 = "a671dcd34aff5c165330c362ee4bae5415a1c047799386f0c1002df496f16fd4"
 # generates completions with host bin
 options = ["!cross"]
 
 
 def post_build(self):
+    from cbuild.util import cargo
+
     self.do("make", "-C", "Documentation", "man")
     for shell in ["bash", "fish"]:
         with open(self.cwd / f"stgit.{shell}", "w") as outf:
             self.do(
-                f"target/{self.profile().triplet}/release/stg",
+                cargo.target_path(self, "stg"),
                 "completion",
                 shell,
                 stdout=outf,
@@ -37,7 +39,9 @@ def post_build(self):
 
 
 def install(self):
-    self.install_bin(f"target/{self.profile().triplet}/release/stg")
+    from cbuild.util import cargo
+
+    self.install_bin(cargo.target_path(self, "stg"))
     self.do(
         "make",
         "-C",

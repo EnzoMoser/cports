@@ -1,5 +1,5 @@
 pkgname = "xh"
-pkgver = "0.25.3"
+pkgver = "0.26.2"
 pkgrel = 0
 build_style = "cargo"
 make_build_args = [
@@ -20,11 +20,13 @@ pkgdesc = "Tool for sending HTTP requests"
 license = "MIT"
 url = "https://github.com/ducaale/xh"
 source = f"{url}/archive/refs/tags/v{pkgver}.tar.gz"
-sha256 = "ba331c33dc5d222f43cc6ad9f602002817772fd52ae28541976db49f34935ae3"
+sha256 = "61a88a5b3beac225b75a11d6ed32659af78db7ff29c825def0ab7f4a2906cbd7"
 
 
 def install(self):
-    self.install_bin(f"target/{self.profile().triplet}/release/xh")
+    from cbuild.util import cargo
+
+    self.install_bin(cargo.target_path(self, "xh"))
     self.install_link("usr/bin/xhs", "xh")
     self.install_license("LICENSE")
     self.install_man("doc/xh.1")

@@ -258,6 +258,23 @@ class Package:
             parents=parents, exist_ok=parents
         )
 
+    def _rmtree_safe(self, path):
+        def _onexc(f, path, _):
+            st = os.stat(path)
+            if stat.S_ISLNK(st.st_mode):
+                return
+            newmode = st.st_mode | stat.S_IRUSR | stat.S_IWUSR
+            if newmode == st.st_mode:
+                return
+            os.chmod(path, newmode)
+            # f can be anything and we don't know the args
+            if stat.S_ISDIR(st.st_mode):
+                os.rmdir(path)
+            else:
+                os.unlink(path)
+
+        shutil.rmtree(path, onexc=_onexc)
+
     def rm(self, path, recursive=False, force=False, glob=False):
         path = _subst_path(self, path)
 
@@ -274,11 +291,6 @@ class Package:
                     self.error(f"'{path}' is a directory", bt=True)
                 path.unlink(missing_ok=force)
             else:
-
-                def _remove_ro(f, p, _):
-                    os.chmod(p, stat.S_IWRITE)
-                    f(p)
-
                 if force and not path.exists():
                     do_unl = path.is_symlink()
                     if not do_unl:
@@ -289,7 +301,7 @@ class Package:
                 if do_unl:
                     path.unlink(missing_ok=force)
                 else:
-                    shutil.rmtree(path, onerror=_remove_ro)
+                    self._rmtree_safe(path)
 
     def ln_s(self, srcp, destp, relative=False):
         srcp = _subst_path(self, srcp)
@@ -360,6 +372,7 @@ default_options = {
     "execstack": (False, False),
     "foreignelf": (False, False),
     "parallel": (True, True),
+    "ci": (True, True),
     "eepy": (False, True),
     "debug": (True, True),
     "strip": (True, False),
@@ -573,8 +586,9 @@ sites = {
     "xorg": "https://www.x.org/releases/individual",
     "cpan": "https://www.cpan.org/modules/by-module",
     "pypi": "https://files.pythonhosted.org/packages/source",
-    "gnu": "https://ftpmirror.gnu.org",
+    "gnu": "https://ftp.gnu.org/gnu",
     "kde": "https://download.kde.org/stable",
+    "kde_unstable": "https://download.kde.org/unstable",
     "xfce": "https://archive.xfce.org/src",
 }
 
@@ -722,6 +736,7 @@ class Template(Package):
         stage=3,
         bulk_mode=False,
         allow_restricted=True,
+        allow_ci=True,
         data=None,
         init=True,
         contents=None,
@@ -776,6 +791,7 @@ class Template(Package):
         self.conf_jobs = jobs[0]
         self.conf_link_threads = jobs[1]
         self._force_check = force_check
+        self._allow_ci = allow_ci
         self._allow_restricted = allow_restricted
         self._data = data if data else {}
         self._linter = linter
@@ -841,9 +857,9 @@ class Template(Package):
 
             return deco
 
-        setattr(builtins, "subpackage", subpkg_deco)
-        setattr(builtins, "custom_target", target_deco)
-        setattr(builtins, "self", self)
+        builtins.subpackage = subpkg_deco
+        builtins.custom_target = target_deco
+        builtins.self = self
 
         if contents:
             with tempfile.NamedTemporaryFile(
@@ -1073,9 +1089,11 @@ class Template(Package):
             )
         elif self.restricted and not self._allow_restricted:
             self.broken = f"cannot be built, it's restricted: {self.restricted}"
+        elif not self.options["ci"] and not self._allow_ci:
+            self.broken = "cannot be built in CI environment"
         elif self.repository not in _allow_cats:
             self.broken = f"cannot be built, disallowed by cbuild (not in {', '.join(_allow_cats)})"
-        elif self.profile().cross and not self.options["cross"]:
+        elif self.profile.cross and not self.options["cross"]:
             self.broken = "cannot be cross-compiled"
 
         # if archs is present, validate it, it may mark the package broken
@@ -1111,7 +1129,7 @@ class Template(Package):
         bdeps = {}
         visited = {}
         hds, tds, rds = dependencies.setup_depends(self, True)
-        for bd in (hds + tds) if not self.profile().cross else tds:
+        for bd in (hds + tds) if not self.profile.cross else tds:
             if bd in visited:
                 continue
             visited[bd] = True
@@ -1186,18 +1204,18 @@ class Template(Package):
         self.patches_path = self.template_path / "patches"
         self.sources_path = paths.sources() / f"{self.pkgname}-{self.pkgver}"
         self.bldroot_path = paths.bldroot()
-        self.statedir = bdirbase / (".cbuild-" + self.pkgname)
+        self.statedir = bdirbase / f"{self.pkgname}-{self.pkgver}"
         self.wrapperdir = self.statedir / "wrappers"
 
         self.destdir_base = (
             paths.builddir() / "destdir" / f"{self.pkgname}-{self.pkgver}"
         )
-        if self.profile().cross:
-            self.destdir_base = self.destdir_base / self.profile().arch
+        if self.profile.cross:
+            self.destdir_base = self.destdir_base / self.profile.arch
 
         self.destdir = self.destdir_base / self.pkgname
 
-        self.srcdir = bdirbase / f"{self.pkgname}-{self.pkgver}"
+        self.srcdir = self.statedir / "wrksrc"
         self.cwd = self.srcdir / self.build_wrksrc
 
         if self.stage == 0:
@@ -1218,14 +1236,12 @@ class Template(Package):
             self.chroot_sources_path = (
                 pathlib.Path("/sources") / f"{self.pkgname}-{self.pkgver}"
             )
-            if self.profile().cross:
+            if self.profile.cross:
                 self.chroot_destdir_base = (
-                    self.chroot_destdir_base / self.profile().arch
+                    self.chroot_destdir_base / self.profile.arch
                 )
 
         self.chroot_destdir = self.chroot_destdir_base / self.pkgname
-
-        self.env["CBUILD_STATEDIR"] = "/builddir/.cbuild-" + self.pkgname
 
         # now do it for all known subpackages
         for sp in self.subpkg_list:
@@ -1244,7 +1260,7 @@ class Template(Package):
             self.link_threads = self.conf_link_threads
 
         # fill the remaining toolflag lists so it's complete
-        for tf in self.profile()._get_supported_tool_flags():
+        for tf in self.profile._get_supported_tool_flags():
             if tf not in self.tool_flags:
                 self.tool_flags[tf] = []
 
@@ -1625,7 +1641,7 @@ class Template(Package):
                 # skip if it's a function and in hooks
                 if varn.startswith("pre_"):
                     cvarn = varn[4:]
-                elif varn.startswith("post_") or varn.startswith("init_"):
+                elif varn.startswith(("post_", "init_")):
                     cvarn = varn[5:]
                 else:
                     cvarn = varn
@@ -1649,7 +1665,7 @@ class Template(Package):
         # if already broken, skip validating it
         if self.broken:
             return
-        bprof = self.profile()
+        bprof = self.profile
         archn = bprof.arch
         # no archs specified: we match always
         if not self.archs:
@@ -1761,10 +1777,10 @@ class Template(Package):
             self.error(f"linter '{lsplit[1]}' is not executable")
 
         if lsplit[0] == "flake8":
-            subp = subprocess.run([lintcmd, self.template_path])
+            subp = subprocess.run([lintcmd, self.template_path], check=False)
         elif lsplit[0] == "ruff":
             subp = subprocess.run(
-                [lintcmd, "check", "--quiet", self.template_path]
+                [lintcmd, "check", "--quiet", self.template_path], check=False
             )
 
         if subp.returncode != 0:
@@ -1816,11 +1832,13 @@ class Template(Package):
                     "--check",
                     "--quiet",
                     self.template_path,
-                ]
+                ],
+                check=False,
             )
         elif fsplit[0] == "ruff":
             subp = subprocess.run(
-                [formatcmd, "format", "--diff", "--quiet", self.template_path]
+                [formatcmd, "format", "--diff", "--quiet", self.template_path],
+                check=False,
             )
 
         if subp.returncode != 0:
@@ -1830,7 +1848,7 @@ class Template(Package):
             )
 
     def is_built(self, quiet=False):
-        archn = self.profile().arch
+        archn = self.profile.arch
         with flock.lock(flock.apklock(archn)):
             pinfo = cli.query(
                 ["repositories", "version"],
@@ -1862,7 +1880,8 @@ class Template(Package):
         path=None,
         tmpfiles=None,
     ):
-        cpf = self.profile()
+        cpf = self.profile
+        binpath = []
 
         cenv = {
             "CBUILD_TARGET_MACHINE": cpf.arch,
@@ -1888,10 +1907,7 @@ class Template(Package):
             cenv["CBUILD_TARGET_TRIPLET"] = cpf.triplet
 
         if self.use_ccache:
-            cenv["CCACHEPATH"] = "/usr/lib/ccache/bin"
-            cenv["CCACHE_DIR"] = "/cbuild_cache/ccache"
-            cenv["CCACHE_BASEDIR"] = str(self.chroot_cwd)
-            cenv["CCACHE_TEMPDIR"] = "/tmp/ccache"
+            binpath += ["/usr/lib/ccache/bin"]
 
         if (
             self.use_sccache
@@ -1909,7 +1925,7 @@ class Template(Package):
         cenv["LD"] = self.get_tool("LD")
         cenv["PKG_CONFIG"] = self.get_tool("PKG_CONFIG")
 
-        with self.profile("host") as hpf:
+        with self.use_profile("host") as hpf:
             for k in ["CC", "CXX", "CPP", "LD", "PKG_CONFIG"]:
                 cenv[f"BUILD_{k}"] = cenv[f"{k}_FOR_BUILD"] = self.get_tool(k)
 
@@ -1964,6 +1980,11 @@ class Template(Package):
                 "--thinlto-cache-dir=/cbuild_cache/lld_thinlto_cache",
             ]
 
+        binpath += [str(self.chroot_statedir / "wrappers")]
+
+        if path:
+            binpath += path
+
         return chroot.enter(
             cmd,
             *args,
@@ -1982,7 +2003,7 @@ class Template(Package):
             stderr=stderr,
             input=input,
             lldargs=lld_args,
-            binpath=path,
+            binpath=binpath,
             term=True,
             tmpfiles=tmpfiles,
         )
@@ -1991,49 +2012,49 @@ class Template(Package):
         return StampCheck(self, name)
 
     def get_tool_flags(
-        self, name, extra_flags=[], hardening=[], shell=False, target=None
+        self, name, extra_flags=None, hardening=None, shell=False, target=None
     ):
         return pkg_profile(self, target)._get_tool_flags(
             self, name, extra_flags, hardening, shell
         )
 
     def get_cflags(
-        self, extra_flags=[], hardening=[], shell=False, target=None
+        self, extra_flags=None, hardening=None, shell=False, target=None
     ):
         return self.get_tool_flags(
             "CFLAGS", extra_flags, hardening, shell, target
         )
 
     def get_cxxflags(
-        self, extra_flags=[], hardening=[], shell=False, target=None
+        self, extra_flags=None, hardening=None, shell=False, target=None
     ):
         return self.get_tool_flags(
             "CXXFLAGS", extra_flags, hardening, shell, target
         )
 
     def get_fflags(
-        self, extra_flags=[], hardening=[], shell=False, target=None
+        self, extra_flags=None, hardening=None, shell=False, target=None
     ):
         return self.get_tool_flags(
             "FFLAGS", extra_flags, hardening, shell, target
         )
 
     def get_ldflags(
-        self, extra_flags=[], hardening=[], shell=False, target=None
+        self, extra_flags=None, hardening=None, shell=False, target=None
     ):
         return self.get_tool_flags(
             "LDFLAGS", extra_flags, hardening, shell, target
         )
 
     def get_rustflags(
-        self, extra_flags=[], hardening=[], shell=False, target=None
+        self, extra_flags=None, hardening=None, shell=False, target=None
     ):
         return self.get_tool_flags(
             "RUSTFLAGS", extra_flags, hardening, shell, target
         )
 
     def get_goflags(
-        self, extra_flags=[], hardening=[], shell=False, target=None
+        self, extra_flags=None, hardening=None, shell=False, target=None
     ):
         return self.get_tool_flags(
             "GOFLAGS", extra_flags, hardening, shell, target
@@ -2065,9 +2086,9 @@ class Template(Package):
     def can_lto(self, target=None):
         return pkg_profile(self, target)._has_lto(self.stage)
 
-    @contextlib.contextmanager
-    def _profile(self, target):
-        old_tgt = self._current_profile
+    def get_profile(self, target=None):
+        if target is None:
+            return self._current_profile
 
         if self.stage == 0 and (target == "host" or target == "target"):
             target = "bootstrap"
@@ -2078,16 +2099,21 @@ class Template(Package):
         elif target == "target:native":
             target = f"{self._target_profile.arch}:native"
 
+        return profile.get_profile(target)
+
+    @property
+    def profile(self):
+        return self.get_profile()
+
+    @contextlib.contextmanager
+    def use_profile(self, target):
+        old_tgt = self.get_profile()
+
         try:
-            self._current_profile = profile.get_profile(target)
+            self._current_profile = self.get_profile(target)
             yield self._current_profile
         finally:
             self._current_profile = old_tgt
-
-    def profile(self, target=None):
-        if target is None:
-            return self._current_profile
-        return self._profile(target)
 
     def uninstall(self, path, glob=False):
         if path.startswith("/"):
@@ -2638,7 +2664,7 @@ class Subpackage(Package):
                                 True,
                             )
                             self._take_impl(
-                                f"usr/share/fish/completions/{p.name}.fish",
+                                f"usr/share/fish/vendor_completions.d/{p.name}.fish",
                                 True,
                             )
 
@@ -2787,7 +2813,7 @@ def _subpkg_install_list(self, lst):
 
 
 def _interp_url(pkg, url):
-    if not url.startswith("$(") and not url.startswith("!$("):
+    if not url.startswith(("$(", "!$(")):
         return url
 
     import re

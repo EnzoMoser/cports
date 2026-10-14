@@ -1,6 +1,6 @@
 pkgname = "containerd"
 pkgver = "2.1.4"
-pkgrel = 8
+pkgrel = 9
 _rootless_ver = "2.1.3"
 build_style = "makefile"
 make_build_args = [
@@ -52,7 +52,7 @@ sha256 = [
 options = ["etcfiles", "!check"]
 
 
-if self.profile().arch in ["loongarch64", "riscv64"]:
+if self.profile.arch in ["loongarch64", "riscv64"]:
     broken = "cgo runtime stuff"
 
 

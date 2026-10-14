@@ -23,7 +23,7 @@ sha256 = "ad8b06b0badbe45ab34b56e8a71d693936ea343413831fc0475656f358eda25d"
 # tests are mostly a waste of time
 options = ["!cross", "!check"]
 
-if self.profile().wordsize == 32:
+if self.profile.wordsize == 32:
     broken = "requires atomic64"
 
 
@@ -41,10 +41,12 @@ def init_build(self):
 
 
 def post_build(self):
+    from cbuild.util import cargo
+
     for shell in ["bash", "fish", "zsh", "nushell"]:
         with open(self.cwd / f"ruff.{shell}", "w") as f:
             self.do(
-                f"./target/{self.profile().triplet}/release/ruff",
+                cargo.target_path(self, "ruff"),
                 "generate-shell-completion",
                 shell,
                 stdout=f,

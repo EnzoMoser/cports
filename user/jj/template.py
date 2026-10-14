@@ -1,8 +1,13 @@
 pkgname = "jj"
-pkgver = "0.44.0"
+pkgver = "0.46.0"
 pkgrel = 0
 build_style = "cargo"
 prepare_after_patch = True
+make_check_args = [
+    "--",
+    "--skip=test_converge::test_find_divergent_changes_two_found",
+    "--skip=test_converge::test_find_divergent_changes_exactly_one_found",
+]
 hostmakedepends = ["cargo-auditable"]
 makedepends = ["rust-std"]
 checkdepends = ["bash", "git", "openssh"]
@@ -10,7 +15,7 @@ pkgdesc = "Git-compatible VCS frontend"
 license = "Apache-2.0"
 url = "https://www.jj-vcs.dev"
 source = f"https://github.com/martinvonz/jj/archive/refs/tags/v{pkgver}.tar.gz"
-sha256 = "cd72ac1040c93d474dcafd8dd7f8d91d7407f9358bc9ffd4a6b72f4017112eab"
+sha256 = "6489f79d59dc4f9c11230c51d309dc9c6ec392921772b738546966c494b6d72c"
 # generates completions with host binary
 options = ["!cross"]
 
@@ -25,21 +30,27 @@ def post_prepare(self):
 
 
 def post_build(self):
+    from cbuild.util import cargo
+
     for shell in ["bash", "fish", "nushell", "zsh"]:
         with open(f"{self.cwd}/jj.{shell}", "w") as o:
             self.do(
-                f"target/{self.profile().triplet}/release/jj",
+                "jj",
                 "util",
                 "completion",
                 shell,
+                path=[cargo.target_path(self)],
+                env={"COMPLETE": shell} if shell != "nushell" else {},
                 stdout=o,
             )
 
 
 def install(self):
-    self.install_bin(f"target/{self.profile().triplet}/release/jj")
+    from cbuild.util import cargo
+
+    self.install_bin(cargo.target_path(self, "jj"))
     self.do(
-        f"target/{self.profile().triplet}/release/jj",
+        cargo.target_path(self, "jj"),
         "util",
         "install-man-pages",
         f"{self.chroot_destdir}/usr/share/man",

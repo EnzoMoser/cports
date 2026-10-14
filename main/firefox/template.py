@@ -1,5 +1,5 @@
 pkgname = "firefox"
-pkgver = "156.0"
+pkgver = "157.0.1"
 pkgrel = 0
 hostmakedepends = [
     "automake",
@@ -65,7 +65,7 @@ pkgdesc = "Mozilla Firefox web browser"
 license = "GPL-3.0-only AND LGPL-2.1-only AND LGPL-3.0-only AND MPL-2.0"
 url = "https://www.mozilla.org/firefox"
 source = f"$(MOZILLA_SITE)/firefox/releases/{pkgver}/source/firefox-{pkgver}.source.tar.xz"
-sha256 = "1f2768c043510009abaa3f078123664e106d3ab9dfce75d1819ad96b2145aab9"
+sha256 = "483bedee9059df2479e4531c443b1073c6ebaed3570bda0c164eb562ee241c4c"
 debug_level = 1  # defatten, especially with LTO
 tool_flags = {
     "LDFLAGS": ["-Wl,-rpath=/usr/lib/firefox", "-Wl,-z,stack-size=2097152"]
@@ -84,17 +84,14 @@ env = {
 # FIXME: youtube causes crashes in libxul after some seconds
 hardening = ["!int"]
 # XXX: maybe someday
-options = ["!cross", "!check"]
+options = ["!ci", "!cross", "!check"]
 
-if self.profile().endian == "big":
+if self.profile.endian == "big":
     broken = "broken colors, needs patching, etc."
 
 # crashes compiler in gl.c
-if self.profile().arch == "riscv64":
+if self.profile.arch == "riscv64":
     tool_flags["CXXFLAGS"] = ["-U_FORTIFY_SOURCE"]
-elif self.profile().arch == "ppc64le":
-    # early profile build libxul takes 7 hours to link for some reason
-    options += ["eepy"]
 
 
 def post_extract(self):
@@ -116,7 +113,7 @@ def init_configure(self):
     self.env["MOZBUILD_STATE_PATH"] = str(self.chroot_srcdir / ".mozbuild")
     self.env["AS"] = self.get_tool("CC")
     self.env["MOZ_MAKE_FLAGS"] = f"-j{self.make_jobs}"
-    self.env["RUST_TARGET"] = self.profile().triplet
+    self.env["RUST_TARGET"] = self.profile.triplet
     # use all the cargo env vars we enforce
     self.env.update(cargo.get_environment(self))
 
@@ -125,8 +122,8 @@ def configure(self):
     conf_opts = [
         "--prefix=/usr",
         "--libdir=/usr/lib",
-        "--host=" + self.profile().triplet,
-        "--target=" + self.profile().triplet,
+        "--host=" + self.profile.triplet,
+        "--target=" + self.profile.triplet,
         "--disable-install-strip",
         "--disable-strip",
         "--enable-linker=lld",
@@ -152,7 +149,6 @@ def configure(self):
         "--enable-audio-backends=pulseaudio",
         "--enable-dbus",
         "--enable-default-toolkit=cairo-gtk3-wayland",
-        "--enable-ffmpeg",
         "--enable-jack",
         "--enable-necko-wifi",
         "--enable-pulseaudio",
@@ -169,7 +165,7 @@ def configure(self):
         "--with-distribution-id=org.chimera-linux",
     ]
 
-    match self.profile().arch:
+    match self.profile.arch:
         case "x86_64" | "aarch64":
             # broken with rust 1.78 as it enables packed_simd feature that uses removed platform_intrinsics
             # conf_opts += ["--enable-rust-simd"]
@@ -182,8 +178,9 @@ def configure(self):
 
     _use_pgo = self.has_lto()
 
-    # gets stuck busy-looping in profiling pass in ff140
-    if self.profile().arch == "aarch64":
+    # aarch64: gets stuck busy-looping in profiling pass in ff140
+    # ppc64le: takes long to link and generates a broken binary
+    if self.profile.arch in ["aarch64", "ppc64le"]:
         _use_pgo = False
 
     if _use_pgo:

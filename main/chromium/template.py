@@ -1,6 +1,8 @@
 pkgname = "chromium"
 # https://chromiumdash.appspot.com/releases?platform=Linux
-pkgver = "153.0.8010.36"
+pkgver = "155.0.8059.39"
+# tools/rust/update_rust.py -> CRUBIT_REVISION
+_crubit_ver = "40fbac34597084a0863256d633889eac2c23b91b"
 pkgrel = 0
 archs = ["aarch64", "ppc64le", "x86_64"]
 configure_args = [
@@ -30,12 +32,12 @@ configure_args = [
     "rtc_link_pipewire=true",
     "rtc_use_pipewire=true",
     'rust_bindgen_root="/usr"',
-    'rust_sysroot_absolute="/usr"',
     # anything works
     'rustc_version="0"',
     "symbol_level=1",
     "treat_warnings_as_errors=false",
     "safe_browsing_use_unrar=false",
+    "v8_use_metagen_instance_types=false",
     "use_clang_modules=false",
     "use_custom_libcxx=false",
     "use_dwarf5=true",
@@ -54,6 +56,7 @@ configure_args = [
 hostmakedepends = [
     "bash",
     "bison",
+    "cargo",
     "esbuild",
     "findutils",
     "git",
@@ -69,6 +72,7 @@ hostmakedepends = [
     "rust",
     "rust-bindgen",
     "rust-rustfmt",
+    "rust-src",
 ]
 makedepends = [
     "alsa-lib-devel",
@@ -142,12 +146,12 @@ license = "BSD-3-Clause"
 url = "https://www.chromium.org"
 source = [
     f"https://github.com/chromium-linux-tarballs/chromium-tarballs/releases/download/{pkgver}/chromium-{pkgver}-linux.tar.xz",
-    "https://registry.npmjs.org/@rollup/wasm-node/-/wasm-node-4.22.4.tgz",
+    f"https://github.com/google/crubit/archive/{_crubit_ver}/crubit-{_crubit_ver}.tar.gz",
 ]
-source_paths = [".", "rollup", "typescript"]
+source_paths = [".", "crubit", "typescript"]
 sha256 = [
-    "5e2e8fe8c990e591b26237ed0fb9747a76f9da3eac439d7a726000879c468735",
-    "ee49bf67bd9bee869405af78162d028e2af0fcfca80497404f56b1b99f272717",
+    "b84bbab0eef2dd4abd73544a95f15dd2c3c815980c4fa47496f3d0ce4f8a2aa7",
+    "07b57fedcffc8c1e8df4875fc314c2290c8cd50ab8d04340b12c945e9c331f5a",
 ]
 debug_level = 1
 tool_flags = {
@@ -171,9 +175,9 @@ file_modes = {
 }
 hardening = ["!scp"]
 # lol
-options = ["etcfiles", "!cross", "!check", "!scanshlibs"]
+options = ["!ci", "etcfiles", "!cross", "!check", "!scanshlibs"]
 
-match self.profile().arch:
+match self.profile.arch:
     case "aarch64":
         source += [
             "https://github.com/microsoft/TypeScript/releases/download/v7.0.2/typescript-linux-arm64.tgz"
@@ -196,7 +200,7 @@ match self.profile().arch:
             "7ecad6f67377e831856367ab062ef394f21506a611405bf8ac0ff039348637d3"
         ]
 
-match self.profile().arch:
+match self.profile.arch:
     case "ppc64le" | "riscv64":
         # trap in add_label_offset() (assembler-ppc.cc)
         # also crashes on riscv64
@@ -210,6 +214,7 @@ def post_patch(self):
     self.rm("third_party/node/linux/node-linux-x64/bin/node", force=True)
     self.mkdir("third_party/node/linux/node-linux-x64/bin", parents=True)
     self.ln_s("/usr/bin/node", "third_party/node/linux/node-linux-x64/bin/node")
+
     # replace wrong esbuild with a working one
     self.rm(
         "third_party/devtools-frontend/src/third_party/esbuild/esbuild",
@@ -228,14 +233,17 @@ def post_patch(self):
         "/usr/lib/node_modules/esbuild",
         "third_party/devtools-frontend/src/node_modules/esbuild",
     )
+
     # replace wrong gperf with a working one
     self.rm("third_party/gperf/cipd/bin/gperf", force=True)
     self.ln_s("/usr/bin/gperf", "third_party/gperf/cipd/bin/gperf")
+
     # lol
     self.mkdir("third_party/dawn/tools/golang/linux-unknown/bin", parents=True)
     self.ln_s(
         "/usr/bin/go", "third_party/dawn/tools/golang/linux-unknown/bin/go"
     )
+
     # replace x64 typescript with the one for our correct platform
     # and patch the library to suit whatever google is doing
     self.rm("third_party/typescript/linux-amd64/src", recursive=True)
@@ -250,18 +258,58 @@ def post_patch(self):
     )
     self.mv("typescript", "third_party/typescript/linux-amd64/src")
 
+    # uh oh
+    # thanks lnl for figuring this out
+    self.rm("buildtools/linux64-format/clang-format")
+    self.ln_s("/usr/bin/clang-format", "buildtools/linux64-format/clang-format")
+    self.mkdir("third_party/rust-toolchain/bin", parents=True)
+    self.mkdir("third_party/rust-toolchain/lib", parents=True)
+    self.ln_s("/usr/bin/cargo", "third_party/rust-toolchain/bin/cargo")
+    self.ln_s("/usr/bin/rustc", "third_party/rust-toolchain/bin/rustc")
+    self.ln_s("/usr/bin/rustfmt", "third_party/rust-toolchain/bin/rustfmt")
+    self.ln_s("/usr/lib/rustlib", "third_party/rust-toolchain/lib/rustlib")
+    self.mkdir("third_party/rust-toolchain-intermediate", parents=True)
+    self.ln_s("../../crubit", "third_party/rust-toolchain-intermediate/crubit")
+    self.do(
+        "python",
+        "./tools/rust/build_crubit.py",
+        "--skip-checkout",
+        allow_network=True,
+        env={"RUSTC_BOOTSTRAP": "1"},
+    )
+    self.mkdir("third_party/rust-toolchain/lib/third_party", parents=True)
+    self.ln_s(
+        "../../../../crubit",
+        "third_party/rust-toolchain/lib/third_party/crubit",
+    )
+    with (self.cwd / "third_party/rust-toolchain/VERSION").open("w") as outf:
+        self.do("rustc", "-V", stdout=outf)
+    self.cp(
+        "third_party/rust-toolchain/VERSION",
+        "third_party/rust-toolchain/INSTALLED_VERSION",
+    )
+    self.do(
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        wrksrc="tools/crates/gnrt",
+        allow_network=True,
+    )
+    self.do(
+        "./tools/crates/gnrt/target/release/gnrt",
+        "gen",
+        "--for-std",
+        "third_party/rust-toolchain/lib/rustlib/src/rust",
+    )
+
     self.cp(self.files_path / "unbundle.sh", ".")
     self.cp(self.files_path / "pp-data.sh", ".")
-
-    self.rm(
-        "third_party/devtools-frontend/src/node_modules/rollup", recursive=True
-    )
-    self.mv("rollup", "third_party/devtools-frontend/src/node_modules")
 
 
 def configure(self):
     # where we mess with libvpx configuration, regen the files
-    if self.profile().arch == "ppc64le":
+    if self.profile.arch == "ppc64le":
         self.do(
             self.chroot_cwd / "third_party/libvpx/generate_gni.sh",
             wrksrc="third_party/libvpx",
@@ -306,9 +354,8 @@ def configure(self):
     # sqlite3BtreeOpen crash
     _cfi = "false"
     _lto = "true" if self.has_lto() else "false"
-    _maglev = "true"
 
-    match self.profile().arch:
+    match self.profile.arch:
         case "aarch64":
             _confargs.append('target_cpu="arm64"')
             # _cfi = "true"
@@ -318,17 +365,14 @@ def configure(self):
         case "ppc64le":
             _confargs.append('target_cpu="ppc64"')
             _vaapi = "false"
-            _maglev = "false"
         case "riscv64":
             _confargs.append('target_cpu="riscv64"')
             _vaapi = "false"
-            _maglev = "false"
 
     _confargs += [
         f"use_vaapi={_vaapi}",
         f"is_cfi={_cfi}",
         f"use_thin_lto={_lto}",
-        f"v8_enable_maglev={_maglev}",
     ]
 
     self.do(

@@ -40,7 +40,7 @@ sha256 = "51dc6a220b88b92c566c0813298062f487094d1309e2ba952d938e9a4b17bd04"
 options = ["!check", "!debug"]
 
 
-if self.profile().wordsize == 32:
+if self.profile.wordsize == 32:
     broken = "needs atomicu64"
 
 
@@ -58,6 +58,8 @@ def init_build(self):
 
 
 def post_install(self):
+    from cbuild.util import cargo
+
     self.install_bin(
-        f"./build/cargo-target/{self.profile().triplet}/release/fractal"
+        cargo.target_path(self, "fractal", f"{self.make_dir}/cargo-target")
     )

@@ -513,10 +513,10 @@ will be clear.
 <a id="phases"></a>
 ## Build Phases
 
-Building a package consists of several phases. All phases other after `setup`
-until and including `install`  can have template specified behavior. The build
-system itself runs outside of the sandboxed container, while most actions
-(such as building) run inside.
+Building a package consists of several phases. All phases after `setup` until
+and including `install`  can have template specified behavior. The build system
+itself runs outside of the sandboxed container, while most actions (such as
+building) run inside.
 
 Except for the `setup` and `fetch` phases, the build system is configured
 to unshare all namespaces when performing actions within the sandbox. That
@@ -707,9 +707,9 @@ should always go there and not in `/etc`.
 Editable configuration files go in `/etc`.
 
 Cross-compiling sysroots are in `/usr/<triplet>` where triplet is for
-example `powerpc64-linux-musl` (i.e. short triplet). These contain a
-simplified filesystem layout (the `usr` directory with the usual files
-and symlinks, and the `bin`, `lib` etc symlinks at top level).
+example `powerpc64le-chimera-linux-musl`. These contain a simplified
+filesystem layout (the `usr` directory with the usual files and
+symlinks, and the `bin`, `lib` etc symlinks at top level).
 
 <a id="bootstrap_packages"></a>
 ### Bootstrap Packages
@@ -1049,7 +1049,7 @@ Keep in mind that default values may be overridden by build styles.
   the extraction of the source. The rest of the string must be a URL. The
   resulting filename will normally be extracted from the URL by finding the
   last forward slash (The filename follows the slash). If `>` is present in
-  the string later than a `/`, the filename instead follows the `>` and
+  the string later than the last `/`, the filename instead follows the `>` and
   the `>` with the filename is stripped from the URL before download. This
   can be useful in cases where the URL does not have an obvious filename,
   or when the filename is ambiguous.
@@ -2026,10 +2026,10 @@ variables are exported (therefore, actual explicit env vars take priority).
 
 The `CC`, `CXX`, `CPP`, `LD` and `PKG_CONFIG` tools are treated specially
 for cross-compiling targets; when a cross-compiling target is detected,
-the short tripet is prepended. This also happens when the user overrides
-the tool via the `tools` variable in the template. Therefore, if you set
-`CC` to `foo` and you cross-compile to `aarch64`, you may get something
-like `aarch64-linux-musl-foo`.
+the triplet is prepended. This also happens when the user overrides the
+tool via the `tools` variable in the template. Therefore, if you set `CC`
+to `foo` and you cross-compile to `aarch64`, you may get something like
+`aarch64-linux-musl-foo`.
 
 Additionally, these tools are also exported into the environment with
 their host values, as `BUILD_CC`, `BUILD_LD` and so on, as well as GNU-style
@@ -2111,8 +2111,7 @@ RUSTFLAGS =
 ```
 
 These are also the fields it has to define. The `triplet` must always
-be the full triplet (`cbuild` will take care of building the short
-triplet from it if needed). The compiler flags are optional.
+be the full triplet. The compiler flags are optional.
 
 The `repos` field specifies which categories are provided by remote
 repositories. As different architectures may provide different
@@ -2135,14 +2134,13 @@ More about that in the respective API sections, but the API allows
 one to retrieve compiler flags in proper architecture-specific way,
 check if we are cross-compiling and otherwise inspect the target.
 
-API-side, the profile (retrieved with `self.profile()` for example)
+API-side, the profile (retrieved with `self.profile` for example)
 is represented as a `Profile` object. It looks like this:
 
 ```
 class Profile:
     arch = ...
     triplet = ...
-    short_triplet = ...
     machine = ...
     sysroot = ...
     wordsize = ...
@@ -2156,8 +2154,7 @@ class Profile:
 The properties have the following meanings:
 
 * `arch` The `apk` architecture name of the profile.
-* `triplet` The "long" target triplet (e.g. `aarch64-unknown-linux-musl`)
-* `short_triplet` The "short" target triplet (e.g. `aarch64-linux-musl`)
+* `triplet` The target triplet (e.g. `aarch64-unknown-linux-musl`)
 * `machine` The `uname` machine of the profile. Matches `arch` if not explicit.
 * `sysroot` A `pathlib` path representing the sysroot.
 * `wordsize` The integer word size of the target (typically 64 or 32).
@@ -2169,9 +2166,9 @@ The properties have the following meanings:
 * `goarm` For 32-bit ARM (`goarch` is `arm`) this is the ARM architecture
   version (ARMv5/6/7).
 
-For the `bootstrap` profile, `triplet` and `short_triplet` are `None`.
+For the `bootstrap` profile, `triplet` is `None`.
 
-The `sysroot` refers to `/` for native targets and `/usr/<short_triplet>` for
+The `sysroot` refers to `/` for native targets and `/usr/<triplet>` for
 cross-compiling targets.
 
 In general, you will not want to use the profile's methods, and the member
@@ -2229,8 +2226,6 @@ The following environment variables are exported into the sandbox:
   Python subprocesses, which allows output to be printed right away,
   since `cbuild` captures it for logging purposes.
 * `SOURCE_DATE_EPOCH` The timestamp for reproducible builds.
-* `CBUILD_STATEDIR` Points to where current package build metadata
-  is stored, such as stamps for finished phases.
 * `CFLAGS` Target C compiler flags.
 * `FFLAGS` Target Fortran compiler flags.
 * `CXXFLAGS` Target C++ compiler flags.
@@ -2265,7 +2260,6 @@ All `BUILD_foo` variables are also exported as `foo_FOR_BUILD`.
 
 Additionally, when using `ccache`, the following are also exported:
 
-* `CCACHEPATH` The path to `ccache` toolchain symlinks.
 * `CCACHE_DIR` The path to `ccache` data.
 * `CCACHE_BASEDIR` Set to the `cbuild`-set current working directory.
 * `CCACHE_TEMPDIR` Set to `/tmp/ccache`.
@@ -2992,11 +2986,10 @@ with self.stamp("test") as s:
 The `check()` method ensures that the code following it is not run if the
 stamp file already exists. The script will proceed after the context.
 
-##### def profile(self, target = None)
+##### def get_profile(self, target = None)
 
-If `target` is not given, returns the current profile, otherwise only
-to be used as a context manager. Temporarily overrides the current build
-profile to the given `target`, which can be a specific profile name (for
+If `target` is not given, returns the current profile, else returns the
+profile defined by `target`, which can be a specific profile name (for
 example `aarch64`) or the special aliases `host` and `target`, which refer
 to the build machine and the target machine respectively (the target machine
 is the same as build machine when not cross compiling).
@@ -3005,21 +2998,35 @@ It is also possible to specify `target:native` as well as e.g. `aarch64:native`
 to force a non-cross profile in an environment where target would otherwise
 be cross. This is useful for particular cases of compiler flags and so on.
 
+##### @property def profile(self)
+
+Equivalent to `self.get_profile()` but as a property accessor for more
+convenient syntax.
+
+Used like:
+
+```
+if self.profile.endian == "big":
+    ...
+```
+
+##### @contextmanager def use_profile(self, target)
+
+Temporarily overrides the current build profile to the given `target`, which
+can be any name that can be passed to `self.get_profile(target)`.
+
 Usage:
 
 ```
-with self.profile("aarch64") as pf:
+with self.use_profile("aarch64") as pf:
     ... do something that we need for aarch64 at the time ...
-
-if self.profile().endian == "big":
-    ...
 ```
 
 ##### def get_tool_flags(self, name, extra_flags = [], hardening = [], shell = False, target = None)
 
 Get specific tool flags (e.g. `CFLAGS`) for the current profile or for `target`.
 
-The `target` argument is the same as for `profile()`.
+The `target` argument is the same as for `get_profile()`.
 
 See the section on tools and tool flags for more information.
 
@@ -3046,7 +3053,7 @@ A shortcut for `get_tool_flags` with `LDFLAGS`.
 
 Get the specific tool (e.g. `CC`) for the current profile or for `target`.
 
-The `target` argument is the same as for `profile()`.
+The `target` argument is the same as for `get_profile()`.
 
 This properly deals with cross-compiling, taking care of adding the right
 prefix where needed and so on. It should always be used instead of querying
@@ -3059,7 +3066,7 @@ as well as the current profile or the `target`) has the given hardening
 flag enabled. For a hardening flag to be enabled, it must not be disabled
 by the template or defaults, and it must be supported for the target.
 
-The `target` argument is the same as for `profile()`.
+The `target` argument is the same as for `get_profile()`.
 
 ##### def has_lto(self, target = None, force = False)
 
@@ -3405,6 +3412,15 @@ Clears the file checksums in `.cargo-checksum.json` of a vendored crate.
 You will need to do this for every crate you patch, as Cargo verifies the
 checksums of every file specified in there. Clearing effectively allows
 easy distro patching.
+
+##### def target_path(pkg, name, base_path = "target", profile = "release")
+
+Returns a path to a file within Cargo build tree. To be used to simplify
+file access. The result is a string with the format:
+
+```
+base_path/pkg.profile.triplet/profile/name
+```
 
 #### cbuild.util.cmake
 
@@ -3797,7 +3813,19 @@ The allowed variables are:
   the `url` of the template (taken as is) plus the `source` URL(s) (with
   the filename component stripped) are used. An exception to this is when
   the `source` URLs contain `ftp.gnome.org`, in which case the `url` of
-  the template is not used and only `source` URLs are.
+  the template is not used and only `source` URLs are. When not set,
+  automatic detection for various URL types takes place, particularly
+  Git forges, which then automatically take on the `git_forge` pattern
+  style (below).
+* `pattern_style` *(str)* A predefined style for a pattern and URL to
+  be used instead of explicit `pattern`. Currently allowed value is
+  `git_forge`, which represents a common style and pattern for Git hosting
+  software based on the `/info/refs` endpoint. With this style, automatic
+  URLs are stripped down to their initial components in the format of
+  `https://tld/user/repo`, while explicitly given URLs are preserved,
+  and they have `/info/refs?service=git-upload-pack` added to them.
+  A pattern is then set to match tags from the file. No other pattern
+  styles currently exist.
 * `pattern` *(str)* A Python regular expression (it is considered a verbose
   regular expression, so you can use multiple lines and comments) that
   matches the version number in the fetched page. You should match the
