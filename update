@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+
+from pathlib import Path
+import re
+import subprocess as sub
+
+PKGLIST = "./pkglist.txt"
+CBUILD = "./cbuild"
+
+def main():
+    print(f"=> Reading {PKGLIST}...")
+    pkgs = read_list(PKGLIST)
+
+    print("=> Updating pkgs...")
+    update_templates(pkgs)
+
+    print("=> Building new pkg vers...")
+    build_pkgs(pkgs)
+
+    print("=> Pruning old pkgs...")
+    run([CBUILD, "-j=1", "prune-pkgs"])
+
+# Read pkg list
+def read_list(list):
+    return [
+        n.strip()
+        for n in Path(list).read_text().splitlines()
+        if n.strip() and not n.startswith("#")
+    ]
+
+# Update templates
+def update_templates(pkgs):
+    for pkg in pkgs:
+        check = sub.run(
+            [CBUILD, "-j=1", "update-check", pkg],
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        out = (check.stdout + check.stderr).lower()
+
+        versions = re.findall(r"->\s*([^\s]+)", out)
+
+        if not versions:
+            print(f"skip {pkg}")
+        else:
+            new_ver = versions[-1]
+
+            for cmd in (
+                [CBUILD, "-j=1", "bump-pkgver", pkg, new_ver],
+                [CBUILD, "-j=1", "prepare-upgrade", pkg],
+            ):
+                run(cmd)
+
+# Build pkgs, one at a time
+def build_pkgs(pkgs, jobs=1):
+    for pkg in pkgs:
+        run([CBUILD, f"-j={jobs}", "--no-depends-check", "pkg", pkg])
+
+def run(cmd):
+    print("+", *cmd)
+    sub.run(cmd, check=True)
+
+if __name__ == "__main__":
+    main()
