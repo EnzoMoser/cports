@@ -55,7 +55,7 @@ def update_templates(pkgs):
 # Build pkgs, one at a time
 def build_pkgs(pkgs, jobs=1):
     for pkg in pkgs:
-        run([CBUILD, f"-j={jobs}", "--no-depends-check", "pkg", pkg])
+        run([CBUILD, f"-j={jobs}", "pkg", pkg])
 
 def run(cmd):
     print("+", *cmd)
